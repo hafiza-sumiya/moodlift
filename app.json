@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "MoodLift",
+    "slug": "moodlift",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#8E48BB",
+      "resizeMode": "contain"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.moodlift.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#8E48BB"
+      },
+      "package": "com.moodlift.app",
+      "permissions": [
+        "NOTIFICATIONS"
+      ]
+    },
+    "web": {},
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "color": "#ffffff"
+        }
+      ]
+    ]
+  }
+}
+

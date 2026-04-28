@@ -1,0 +1,71 @@
+{
+  "quotes": [
+    {
+      "text": "You are capable of amazing things. Take it one step at a time.",
+      "author": "MoodLift",
+      "category": "motivation"
+    },
+    {
+      "text": "Progress, not perfection. Every small step counts.",
+      "author": "MoodLift",
+      "category": "motivation"
+    },
+    {
+      "text": "Your mental health is a priority. Take care of yourself.",
+      "author": "MoodLift",
+      "category": "wellness"
+    },
+    {
+      "text": "It's okay to take breaks. Rest is productive too.",
+      "author": "MoodLift",
+      "category": "wellness"
+    },
+    {
+      "text": "You've survived 100% of your bad days. You've got this!",
+      "author": "MoodLift",
+      "category": "encouragement"
+    },
+    {
+      "text": "Small progress is still progress. Keep going!",
+      "author": "MoodLift",
+      "category": "motivation"
+    },
+    {
+      "text": "Focus on what you can control. Let go of what you can't.",
+      "author": "MoodLift",
+      "category": "mindfulness"
+    },
+    {
+      "text": "Your feelings are valid. Take time to process them.",
+      "author": "MoodLift",
+      "category": "wellness"
+    }
+  ],
+  "tips": [
+    {
+      "text": "Take 3 deep breaths when feeling overwhelmed",
+      "category": "quick-tip"
+    },
+    {
+      "text": "Spend 5 minutes reading something positive",
+      "category": "quick-tip"
+    },
+    {
+      "text": "Practice the 5-4-3-2-1 grounding technique",
+      "category": "quick-tip"
+    },
+    {
+      "text": "Stay hydrated - it helps with focus and mood",
+      "category": "wellness"
+    },
+    {
+      "text": "Break large tasks into smaller, manageable chunks",
+      "category": "productivity"
+    },
+    {
+      "text": "Take regular breaks during study sessions",
+      "category": "productivity"
+    }
+  ]
+}
+
