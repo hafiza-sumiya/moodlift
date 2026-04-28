@@ -14,7 +14,10 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.moodlift.app"
+      "bundleIdentifier": "com.moodlift.app",
+      "runtimeVersion": {
+        "policy": "appVersion"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -22,8 +25,10 @@
       },
       "package": "com.moodlift.app",
       "permissions": [
+        "NOTIFICATIONS",
         "NOTIFICATIONS"
-      ]
+      ],
+      "runtimeVersion": "1.0.0"
     },
     "web": {},
     "plugins": [
@@ -33,7 +38,14 @@
           "color": "#ffffff"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "864e6a3e-e32a-4569-8e56-909cd89e6dfa"
+      }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/864e6a3e-e32a-4569-8e56-909cd89e6dfa"
+    }
   }
 }
-
