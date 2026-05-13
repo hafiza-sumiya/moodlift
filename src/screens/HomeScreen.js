@@ -25,7 +25,6 @@ export default function HomeScreen() {
   const [userName, setUserName] = useState("");
   const [greeting, setGreeting] = useState("");
   const [currentQuote, setCurrentQuote] = useState(null);
-  const [currentTip, setCurrentTip] = useState(null);
   const [streak, setStreak] = useState(0);
   const [stories, setStories] = useState([]);
   const [loadingStories, setLoadingStories] = useState(false);
@@ -82,9 +81,7 @@ export default function HomeScreen() {
     const quotes = motivationalData.quotes;
     const tips = motivationalData.tips;
     const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
-    const randomTip = tips[Math.floor(Math.random() * tips.length)];
     setCurrentQuote(randomQuote);
-    setCurrentTip(randomTip);
   };
 
   return (
@@ -182,16 +179,7 @@ export default function HomeScreen() {
         {/* Motivational Quote Card */}
         {currentQuote && (
           <View style={styles.quoteCard}>
-            <Text style={styles.quoteText}>"{currentQuote.text}"</Text>
-            <Text style={styles.quoteAuthor}>— {currentQuote.author}</Text>
-          </View>
-        )}
-
-        {/* Quick Tip Card */}
-        {currentTip && (
-          <View style={styles.tipCard}>
-            <Text style={styles.tipLabel}>💡 Quick Tip</Text>
-            <Text style={styles.tipText}>{currentTip.text}</Text>
+            <Text style={styles.quoteText}>{currentQuote.text}</Text>
           </View>
         )}
 
@@ -201,9 +189,10 @@ export default function HomeScreen() {
           <TouchableOpacity
             onPress={() => navigation.navigate("ShareCondition")}
           >
-            <Text style={styles.linkText}>Share your condition →</Text>
+            <Text style={styles.linkText}>Share yours →</Text>
           </TouchableOpacity>
         </View>
+
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -241,29 +230,6 @@ export default function HomeScreen() {
             </View>
           )}
         </ScrollView>
-
-        {/* Daily Reflection Card */}
-        <TouchableOpacity
-          style={styles.journalCard}
-          onPress={() => navigation.navigate("Journal")}
-        >
-          <Text style={styles.journalEmoji}>📝</Text>
-          <Text style={styles.journalText}>Daily Reflection</Text>
-          <Text style={styles.journalSubtext}>
-            Write about today's positive or negative moment
-          </Text>
-        </TouchableOpacity>
-
-        {/* Daily Reminders */}
-        <View style={styles.remindersCard}>
-          <Text style={styles.remindersTitle}>📌 Daily Reminders</Text>
-          <View style={styles.reminderItem}>
-            <Text style={styles.reminderText}>✓ Fill mood tracker</Text>
-          </View>
-          <View style={styles.reminderItem}>
-            <Text style={styles.reminderText}>✓ Do 2 min breathing</Text>
-          </View>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -380,25 +346,18 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   quoteCard: {
-    backgroundColor: "#fff",
+    backgroundColor: "#f9ff8fff",
     borderRadius: 16,
-    padding: 24,
-    marginBottom: 18,
+    padding: 12,
+    marginBottom: 12,
     marginHorizontal: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
-    borderLeftWidth: 4,
-    borderLeftColor: "#8E48BB",
+    borderColor: "#4e007fff",
   },
   quoteText: {
-    fontSize: 17,
+    fontSize: 14,
     fontStyle: "italic",
     color: "#374151",
-    marginBottom: 12,
-    lineHeight: 26,
+    lineHeight: 18,
     fontWeight: "500",
   },
   quoteAuthor: {
@@ -407,34 +366,7 @@ const styles = StyleSheet.create({
     textAlign: "right",
     fontWeight: "500",
   },
-  tipCard: {
-    backgroundColor: "#ecfdf5",
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 18,
-    marginHorizontal: 20,
-    borderLeftWidth: 5,
-    borderLeftColor: "#10b981",
-    shadowColor: "#10b981",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  tipLabel: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#065f46",
-    marginBottom: 8,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  tipText: {
-    fontSize: 15,
-    color: "#047857",
-    lineHeight: 24,
-    fontWeight: "500",
-  },
+
   journalCard: {
     backgroundColor: "#fff",
     borderRadius: 16,

@@ -6,16 +6,24 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
-  Animated,
   TextInput,
   Dimensions,
-  PanResponder,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { storage } from "../utils/storage";
 import { getDateKey, calculateStreak, getColorForMood } from "../utils/helpers";
+import api from "../utils/api";
 
 const { width } = Dimensions.get("window");
+
+// New mood tracking screen with 4 steps:
+const MOOD_SLIDER = [
+  { emoji: "😄", label: "Happy", value: "happy", color: "#fde68a" },
+  { emoji: "😊", label: "Good", value: "good", color: "#bbf7d0" },
+  { emoji: "😐", label: "Okay", value: "neutral", color: "#e5e7eb" },
+  { emoji: "😔", label: "Sad", value: "sad", color: "#bfdbfe" },
+  { emoji: "😡", label: "Angry", value: "angry", color: "#fecaca" },
+];
 
 const MOOD_COLORS = [
   { name: "green", label: "Calm", emoji: "😌" },
@@ -94,6 +102,8 @@ const GROUNDING_STEPS = [
 export default function MoodTrackingScreen() {
   const navigation = useNavigation();
   const [step, setStep] = useState(1);
+  const [tapCount, setTapCount] = useState(0);
+  const [tapStart, setTapStart] = useState(null);
   const [selectedFeeling, setSelectedFeeling] = useState(null);
   const [selectedEmoji, setSelectedEmoji] = useState(null);
   const [groundingStep, setGroundingStep] = useState(0);
@@ -102,7 +112,6 @@ export default function MoodTrackingScreen() {
   const [selectedColor, setSelectedColor] = useState(null);
   const [swipeIndex, setSwipeIndex] = useState(0);
   const [groundingResponses, setGroundingResponses] = useState({});
-  const pan = useRef(new Animated.ValueXY()).current;
 
   // Timer effect with decreasing times
   React.useEffect(() => {
@@ -125,102 +134,33 @@ export default function MoodTrackingScreen() {
     };
   }, [timerActive, timer, groundingStep]);
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (evt, gestureState) => {
-        return Math.abs(gestureState.dx) > 10 || Math.abs(gestureState.dy) > 10;
-      },
-      onPanResponderGrant: () => {
-        pan.setOffset({
-          x: pan.x._value,
-          y: pan.y._value,
-        });
-      },
-      onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], {
-        useNativeDriver: false,
-      }),
-      onPanResponderRelease: (evt, gestureState) => {
-        pan.flattenOffset();
-        if (Math.abs(gestureState.dx) > 50) {
-          if (gestureState.dx > 0) {
-            // Swipe right - go to previous (decrease index)
-            if (swipeIndex > 0) {
-              const newIndex = swipeIndex - 1;
-              setSwipeIndex(newIndex);
-              // Animate card change
-              Animated.spring(pan, {
-                toValue: { x: 0, y: 0 },
-                useNativeDriver: false,
-                tension: 50,
-                friction: 7,
-              }).start();
-            } else {
-              // Bounce back if at start
-              Animated.spring(pan, {
-                toValue: { x: 0, y: 0 },
-                useNativeDriver: false,
-                tension: 50,
-                friction: 7,
-              }).start();
-            }
-          } else {
-            // Swipe left - go to next (increase index)
-            if (swipeIndex < INITIAL_FEELINGS.length - 1) {
-              const newIndex = swipeIndex + 1;
-              setSwipeIndex(newIndex);
-              // Animate card change
-              Animated.spring(pan, {
-                toValue: { x: 0, y: 0 },
-                useNativeDriver: false,
-                tension: 50,
-                friction: 7,
-              }).start();
-            } else {
-              // Bounce back if at end
-              Animated.spring(pan, {
-                toValue: { x: 0, y: 0 },
-                useNativeDriver: false,
-                tension: 50,
-                friction: 7,
-              }).start();
-            }
-          }
-        } else {
-          // Small movement - snap back
-          Animated.spring(pan, {
-            toValue: { x: 0, y: 0 },
-            useNativeDriver: false,
-            tension: 50,
-            friction: 7,
-          }).start();
-        }
-      },
-    }),
-  ).current;
-
-  const handleSwipeRight = () => {
-    // Right arrow = go to next card (increase index)
-    if (swipeIndex < INITIAL_FEELINGS.length - 1) {
-      const newIndex = swipeIndex + 1;
-      setSwipeIndex(newIndex);
-      // Reset pan position
-      pan.setValue({ x: 0, y: 0 });
-    }
-  };
-
-  const handleSwipeLeft = () => {
-    // Left arrow = go to previous card (decrease index)
-    if (swipeIndex > 0) {
-      const newIndex = swipeIndex - 1;
-      setSwipeIndex(newIndex);
-      // Reset pan position
-      pan.setValue({ x: 0, y: 0 });
-    }
-  };
-
   const handleFeelingSelect = (feeling) => {
     setSelectedFeeling(feeling);
     setTimeout(() => setStep(2), 500);
+  };
+
+  const handleTap = () => {
+    if (!tapStart) {
+      setTapStart(Date.now());
+    }
+
+    setTapCount((prev) => {
+      const newCount = prev + 1;
+
+      if (newCount === 10) {
+        const time = Date.now() - tapStart;
+
+        if (time < 2000) {
+          setSelectedEmoji({ value: "energetic", emoji: "🔥" });
+        } else {
+          setSelectedEmoji({ value: "tired", emoji: "😴" });
+        }
+
+        setTimeout(() => setStep(3), 300);
+      }
+
+      return newCount;
+    });
   };
 
   const handleEmojiSelect = (emoji) => {
@@ -273,7 +213,15 @@ export default function MoodTrackingScreen() {
       groundingExercise: groundingResponses, // Store grounding responses
     };
 
-    await storage.saveMoodData(moodEntry);
+    try {
+      await api.request("/moods", {
+        method: "POST",
+        body: JSON.stringify(moodEntry),
+      });
+    } catch (e) {
+      console.log("Backend failed, saving local");
+      await storage.saveMoodData(moodEntry);
+    }
     await calculateStreak(storage);
 
     // Show appropriate message based on color
@@ -302,76 +250,30 @@ export default function MoodTrackingScreen() {
   };
 
   const renderStep1 = () => {
-    const currentFeeling = INITIAL_FEELINGS[swipeIndex];
-
     return (
       <View style={styles.stepContainer}>
-        <Text style={styles.stepTitle}>How are you feeling?</Text>
-        <Text style={styles.stepSubtitle}>Use buttons to browse</Text>
+        <Text style={styles.stepTitle}>How do you feel today?</Text>
 
-        <Animated.View
-          style={[
-            styles.swipeCard,
-            {
-              backgroundColor: currentFeeling?.color || "#8E48BB",
-              transform: [{ translateX: pan.x }, { translateY: pan.y }],
-            },
-          ]}
-          {...panResponder.panHandlers}
-        >
-          <View style={styles.swipeCardContent}>
-            <Text style={styles.swipeCardText}>{currentFeeling?.text}</Text>
-            <View style={styles.cardIndicator}>
-              <Text style={styles.cardIndicatorText}>
-                {swipeIndex + 1} / {INITIAL_FEELINGS.length}
-              </Text>
-            </View>
-          </View>
-        </Animated.View>
-
-        <View style={styles.swipeButtons}>
-          <TouchableOpacity
-            style={[
-              styles.swipeButton,
-              swipeIndex === 0 && styles.swipeButtonDisabled,
-            ]}
-            onPress={handleSwipeLeft}
-            disabled={swipeIndex === 0}
-          >
-            <Text
+        <View style={styles.sliderContainer}>
+          {MOOD_SLIDER.map((item) => (
+            <TouchableOpacity
+              key={item.value}
               style={[
-                styles.swipeButtonText,
-                swipeIndex === 0 && styles.swipeButtonTextDisabled,
+                styles.moodItem,
+                selectedFeeling?.value === item.value && {
+                  backgroundColor: item.color,
+                  transform: [{ scale: 1.1 }],
+                },
               ]}
+              onPress={() => {
+                setSelectedFeeling(item);
+                setTimeout(() => setStep((prev) => prev + 1), 300);
+              }}
             >
-              ←
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.swipeButton, styles.selectButton]}
-            onPress={() => handleFeelingSelect(currentFeeling)}
-          >
-            <Text style={styles.selectButtonText}>Select</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.swipeButton,
-              swipeIndex === INITIAL_FEELINGS.length - 1 &&
-                styles.swipeButtonDisabled,
-            ]}
-            onPress={handleSwipeRight}
-            disabled={swipeIndex === INITIAL_FEELINGS.length - 1}
-          >
-            <Text
-              style={[
-                styles.swipeButtonText,
-                swipeIndex === INITIAL_FEELINGS.length - 1 &&
-                  styles.swipeButtonTextDisabled,
-              ]}
-            >
-              →
-            </Text>
-          </TouchableOpacity>
+              <Text style={styles.moodEmoji}>{item.emoji}</Text>
+              <Text style={styles.moodLabel}>{item.label}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
     );
@@ -379,131 +281,92 @@ export default function MoodTrackingScreen() {
 
   const renderStep2 = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Choose an emoji</Text>
-      <ScrollView
-        vertical
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.emojiScrollContainer}
-      >
-        {EMOJI_OPTIONS.map((option) => (
-          <TouchableOpacity
-            key={option.value}
-            style={[
-              styles.emojiOption,
-              selectedEmoji?.value === option.value &&
-                styles.emojiOptionSelected,
-            ]}
-            onPress={() => handleEmojiSelect(option)}
-          >
-            <Text style={styles.emojiLarge}>{option.emoji}</Text>
-            <Text style={styles.emojiLabel}>{option.label}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <Text style={styles.stepTitle}>Tap 10 times fast!</Text>
+
+      <TouchableOpacity style={styles.tapBox} onPress={handleTap}>
+        <Text style={[styles.tapText, { fontSize: 30 }]}>{tapCount}</Text>
+      </TouchableOpacity>
     </View>
   );
 
   const renderStep3 = () => {
-    const currentStep =
-      groundingStep > 0 && groundingStep <= 5
-        ? GROUNDING_STEPS[groundingStep - 1]
-        : null;
+    if (groundingStep === 0) {
+      return (
+        <View style={styles.stepContainer}>
+          <Text style={styles.stepTitle}>Take a moment 🧘</Text>
+
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={() => setStep(4)}
+          >
+            <Text style={styles.primaryButtonText}>Skip</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={startGroundingExercise}
+          >
+            <Text style={styles.secondaryButtonText}>Start Exercise</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    if (groundingStep > GROUNDING_STEPS.length) return null;
+
+    const current = GROUNDING_STEPS[groundingStep - 1];
+    if (!current) return null;
 
     return (
       <View style={styles.stepContainer}>
-        <Text style={styles.stepTitle}>Grounding Exercise</Text>
-        <Text style={styles.stepSubtitle}>5-4-3-2-1 Technique</Text>
+        <Text style={styles.timerText}>{timer}s</Text>
 
-        {groundingStep === 0 && (
-          <View style={styles.groundingIntro}>
-            <Text style={styles.groundingIntroText}>
-              This exercise helps you stay present and calm. We'll guide you
-              through identifying:
-            </Text>
-            <View style={styles.groundingList}>
-              {GROUNDING_STEPS.map((step) => (
-                <View key={step.number} style={styles.groundingListItem}>
-                  <Text style={styles.groundingListItemText}>
-                    {step.number} {step.sense} ({step.timer}s)
-                  </Text>
-                </View>
-              ))}
-            </View>
-            <TouchableOpacity
-              style={styles.startButton}
-              onPress={startGroundingExercise}
-            >
-              <Text style={styles.startButtonText}>Start Exercise</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        <Text style={styles.stepTitle}>
+          {current.number} {current.sense}
+        </Text>
 
-        {groundingStep > 0 && groundingStep <= 5 && currentStep && (
-          <View style={styles.groundingActive}>
-            <View style={styles.timerContainer}>
-              <Text style={styles.timerText}>{timer}s</Text>
-            </View>
-            <Text style={styles.groundingQuestion}>
-              {currentStep.number} {currentStep.sense}
-            </Text>
-            <Text style={styles.groundingInstruction}>
-              Write them down below...
-            </Text>
+        <TextInput
+          style={styles.groundingTextArea}
+          placeholder="Write here..."
+          value={groundingResponses[groundingStep] || ""}
+          onChangeText={(t) => updateGroundingResponse(groundingStep, t)}
+        />
 
-            <TextInput
-              style={styles.groundingTextArea}
-              placeholder={`List ${currentStep.number} ${currentStep.sense}...`}
-              placeholderTextColor="#9ca3af"
-              multiline
-              numberOfLines={4}
-              value={groundingResponses[groundingStep] || ""}
-              onChangeText={(text) =>
-                updateGroundingResponse(groundingStep, text)
-              }
-              textAlignVertical="top"
-            />
-
-            <TouchableOpacity
-              style={styles.nextStepButton}
-              onPress={handleNextGroundingStep}
-            >
-              <Text style={styles.nextStepButtonText}>
-                {groundingStep < 5 ? "Next" : "Complete"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {groundingStep === 6 && (
-          <View style={styles.groundingComplete}>
-            <Text style={styles.completeEmoji}>✅</Text>
-            <Text style={styles.completeText}>Exercise Complete!</Text>
-            <Text style={styles.completeSubtext}>Moving to next step...</Text>
-          </View>
-        )}
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={handleNextGroundingStep}
+        >
+          <Text style={styles.primaryButtonText}>Next</Text>
+        </TouchableOpacity>
       </View>
     );
   };
 
   const renderStep4 = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Pick a color for today</Text>
-      <View style={styles.colorGrid}>
+      <Text style={styles.stepTitle}>You're feeling</Text>
+
+      <Text style={styles.finalEmoji}>{selectedEmoji?.emoji || "😊"}</Text>
+
+      <Text style={styles.finalText}>{selectedFeeling?.label || "Good"}</Text>
+
+      <View style={styles.colorRow}>
         {MOOD_COLORS.map((color) => (
           <TouchableOpacity
             key={color.name}
             style={[
-              styles.colorOption,
+              styles.colorDot,
               { backgroundColor: getColorForMood(color.name) },
-              selectedColor?.name === color.name && styles.colorOptionSelected,
             ]}
-            onPress={() => handleColorSelect(color)}
-          >
-            <Text style={styles.colorEmoji}>{color.emoji}</Text>
-            <Text style={styles.colorLabel}>{color.label}</Text>
-          </TouchableOpacity>
+            onPress={() => setSelectedColor(color)}
+          />
         ))}
       </View>
+      <TouchableOpacity
+        style={styles.primaryButton}
+        onPress={() => handleColorSelect(selectedColor)}
+      >
+        <Text style={styles.primaryButtonText}>Save Mood</Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -524,6 +387,108 @@ export default function MoodTrackingScreen() {
 }
 
 const styles = StyleSheet.create({
+  tapBox: {
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: "#8E48BB",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 40,
+  },
+
+  tapText: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
+
+  sliderContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+    marginTop: 40,
+  },
+
+  moodItem: {
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 12,
+  },
+
+  moodEmoji: {
+    fontSize: 32,
+  },
+
+  moodLabel: {
+    fontSize: 12,
+    marginTop: 4,
+  },
+
+  emojiGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginTop: 30,
+  },
+
+  emojiCard: {
+    width: "30%",
+    aspectRatio: 1,
+    backgroundColor: "#fff",
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+
+  primaryButton: {
+    backgroundColor: "#8E48BB",
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 20,
+    width: "80%",
+    alignItems: "center",
+  },
+
+  primaryButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+  },
+
+  secondaryButton: {
+    marginTop: 12,
+  },
+
+  secondaryButtonText: {
+    color: "#8E48BB",
+  },
+
+  finalEmoji: {
+    fontSize: 80,
+    marginVertical: 20,
+  },
+
+  finalText: {
+    fontSize: 24,
+    fontWeight: "600",
+  },
+
+  colorRow: {
+    flexDirection: "row",
+    marginTop: 30,
+  },
+
+  colorDot: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginHorizontal: 8,
+  },
+
   container: {
     flex: 1,
     backgroundColor: "#f9fafb",
@@ -561,112 +526,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     textAlign: "center",
   },
-  swipeCard: {
-    width: "90%",
-    height: 220,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
-    marginBottom: 24,
-    alignSelf: "center",
-  },
-  swipeCardContent: {
-    padding: 20,
-    alignItems: "center",
-  },
-  swipeCardText: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#fff",
-    textAlign: "center",
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  cardIndicator: {
-    marginTop: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
-    borderRadius: 12,
-  },
-  cardIndicatorText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  swipeButtons: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    width: "90%",
-    alignItems: "center",
-  },
-  swipeButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#e5e7eb",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  swipeButtonDisabled: {
-    backgroundColor: "#f3f4f6",
-    opacity: 0.5,
-  },
-  selectButton: {
-    backgroundColor: "#8E48BB",
-    width: 100,
-  },
-  swipeButtonText: {
-    fontSize: 24,
-    color: "#6b7280",
-    fontWeight: "bold",
-  },
-  swipeButtonTextDisabled: {
-    color: "#d1d5db",
-  },
-  selectButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#fff",
-  },
-  emojiScrollContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    paddingHorizontal: 10,
-    paddingVertical: 20,
-  },
-  emojiContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    width: "100%",
-    paddingHorizontal: 20,
-  },
-  emojiOption: {
-    alignItems: "center",
-    padding: 16,
-    borderRadius: 16,
-    backgroundColor: "#fff",
-    width: "30%",
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  emojiOptionSelected: {
-    backgroundColor: "#eef2ff",
-    borderWidth: 3,
-    borderColor: "#8E48BB",
-    transform: [{ scale: 1.1 }],
-  },
+
   emojiLarge: {
     fontSize: 48,
     marginBottom: 8,
@@ -676,10 +536,7 @@ const styles = StyleSheet.create({
     color: "#374151",
     fontWeight: "500",
   },
-  groundingIntro: {
-    width: "100%",
-    alignItems: "center",
-  },
+
   groundingIntroText: {
     fontSize: 16,
     color: "#374151",
@@ -687,34 +544,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     lineHeight: 24,
   },
-  groundingList: {
-    width: "100%",
-    marginBottom: 32,
-  },
-  groundingListItem: {
-    marginBottom: 12,
-    paddingLeft: 20,
-  },
-  groundingListItemText: {
-    fontSize: 18,
-    color: "#1f2937",
-    fontWeight: "500",
-  },
-  startButton: {
-    backgroundColor: "#8E48BB",
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 12,
-  },
-  startButtonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  groundingActive: {
-    width: "100%",
-    alignItems: "center",
-  },
+
   timerContainer: {
     width: 100,
     height: 100,
@@ -762,71 +592,8 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  nextStepButton: {
-    backgroundColor: "#8E48BB",
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 12,
-    minWidth: 120,
-  },
-  nextStepButtonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "600",
-    textAlign: "center",
-  },
+
   groundingComplete: {
     alignItems: "center",
-  },
-  completeEmoji: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  completeText: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#10b981",
-    marginBottom: 8,
-  },
-  completeSubtext: {
-    fontSize: 14,
-    color: "#6b7280",
-  },
-  colorGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    width: "100%",
-    paddingHorizontal: 10,
-  },
-  colorOption: {
-    width: "30%",
-    aspectRatio: 1,
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  colorOptionSelected: {
-    borderWidth: 4,
-    borderColor: "#fff",
-    transform: [{ scale: 1.1 }],
-  },
-  colorEmoji: {
-    fontSize: 32,
-    marginBottom: 8,
-  },
-  colorLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#fff",
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
   },
 });

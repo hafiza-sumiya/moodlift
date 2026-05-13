@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,12 +7,12 @@ import {
   Dimensions,
   Platform,
   StatusBar,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { storage } from '../utils/storage';
-import { getColorForMood, getMoodLabel } from '../utils/helpers';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { storage } from "../utils/storage";
+import { getColorForMood, getMoodLabel } from "../utils/helpers";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 export default function InsightsScreen() {
   const [moodData, setMoodData] = useState([]);
@@ -27,6 +27,25 @@ export default function InsightsScreen() {
     setMoodData(data);
     calculateInsights(data);
   };
+
+  // const loadInsights = async () => {
+  //   try {
+  //     const res = await api.request("/moods", {
+  //       method: "GET",
+  //     });
+
+  //     const data = res.data || res; // backend structure safe
+
+  //     setMoodData(data);
+  //     calculateInsights(data);
+  //   } catch (err) {
+  //     console.log("Backend failed, using local");
+
+  //     const localData = await storage.getMoodData();
+  //     setMoodData(localData);
+  //     calculateInsights(localData);
+  //   }
+  // };
 
   const calculateInsights = (data) => {
     if (data.length === 0) {
@@ -47,12 +66,12 @@ export default function InsightsScreen() {
       moodCounts[entry.color] = (moodCounts[entry.color] || 0) + 1;
     });
     const mostCommonMood = Object.keys(moodCounts).reduce((a, b) =>
-      moodCounts[a] > moodCounts[b] ? a : b
+      moodCounts[a] > moodCounts[b] ? a : b,
     );
 
     // Calculate stress frequency (red + purple)
     const stressEntries = data.filter(
-      (entry) => entry.color === 'red' || entry.color === 'purple'
+      (entry) => entry.color === "red" || entry.color === "purple",
     );
     const stressFrequency = (stressEntries.length / data.length) * 100;
 
@@ -60,12 +79,12 @@ export default function InsightsScreen() {
     const dayOfWeekCounts = {};
     data.forEach((entry) => {
       const date = new Date(entry.date);
-      const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+      const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
       if (!dayOfWeekCounts[dayName]) {
         dayOfWeekCounts[dayName] = { total: 0, stressed: 0 };
       }
       dayOfWeekCounts[dayName].total++;
-      if (entry.color === 'red' || entry.color === 'purple') {
+      if (entry.color === "red" || entry.color === "purple") {
         dayOfWeekCounts[dayName].stressed++;
       }
     });
@@ -103,30 +122,30 @@ export default function InsightsScreen() {
     const recommendations = [];
     if (stressFrequency > 30) {
       recommendations.push({
-        icon: '🧘',
-        text: 'Consider practicing breathing exercises more frequently',
-        priority: 'high',
+        icon: "🧘",
+        text: "Consider practicing breathing exercises more frequently",
+        priority: "high",
       });
     }
     if (highestStressDay) {
       recommendations.push({
-        icon: '📅',
+        icon: "📅",
         text: `You tend to feel more stressed on ${highestStressDay}s. Plan lighter activities on these days.`,
-        priority: 'medium',
+        priority: "medium",
       });
     }
     if (data.length < 7) {
       recommendations.push({
-        icon: '📊',
-        text: 'Track your mood for at least a week to get better insights',
-        priority: 'low',
+        icon: "📊",
+        text: "Track your mood for at least a week to get better insights",
+        priority: "low",
       });
     }
-    if (mostCommonMood === 'red' || mostCommonMood === 'purple') {
+    if (mostCommonMood === "red" || mostCommonMood === "purple") {
       recommendations.push({
-        icon: '💚',
-        text: 'Try incorporating more mindfulness activities into your routine',
-        priority: 'high',
+        icon: "💚",
+        text: "Try incorporating more mindfulness activities into your routine",
+        priority: "high",
       });
     }
 
@@ -154,127 +173,130 @@ export default function InsightsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+      >
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerText}>Triggers & Insights</Text>
         </View>
-      
-      <View style={styles.subtitleContainer}>
-        <Text style={styles.subtitle}>
-          Understanding your mood patterns to help you feel better
-        </Text>
-      </View>
 
-      {/* Overview Stats */}
-      <View style={[styles.statsContainer, { paddingHorizontal: 20 }]}>
-        <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{insights.totalEntries}</Text>
-          <Text style={styles.statLabel}>Total Entries</Text>
+        <View style={styles.subtitleContainer}>
+          <Text style={styles.subtitle}>
+            Understanding your mood patterns to help you feel better
+          </Text>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{insights.stressFrequency}%</Text>
-          <Text style={styles.statLabel}>Stress Frequency</Text>
-        </View>
-      </View>
 
-      {/* Most Common Mood */}
-      {insights.mostCommonMood && (
-        <View style={[styles.insightCard, { marginHorizontal: 20 }]}>
-          <Text style={styles.insightTitle}>Most Common Mood</Text>
-          <View style={styles.moodDisplay}>
-            <View
-              style={[
-                styles.moodCircleLarge,
-                { backgroundColor: getColorForMood(insights.mostCommonMood) },
-              ]}
-            >
-              <Text style={styles.moodEmojiLarge}>
-                {insights.mostCommonMood === 'green' && '😌'}
-                {insights.mostCommonMood === 'yellow' && '😊'}
-                {insights.mostCommonMood === 'blue' && '😴'}
-                {insights.mostCommonMood === 'orange' && '🔥'}
-                {insights.mostCommonMood === 'red' && '😰'}
-                {insights.mostCommonMood === 'purple' && '😕'}
-              </Text>
-            </View>
-            <Text style={styles.moodLabelLarge}>
-              {getMoodLabel(insights.mostCommonMood)}
-            </Text>
+        {/* Overview Stats */}
+        <View style={[styles.statsContainer, { paddingHorizontal: 20 }]}>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>{insights.totalEntries}</Text>
+            <Text style={styles.statLabel}>Total Entries</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>{insights.stressFrequency}%</Text>
+            <Text style={styles.statLabel}>Stress Frequency</Text>
           </View>
         </View>
-      )}
 
-      {/* Weekly Pattern */}
-      {insights.weeklyPattern && (
-        <View style={[styles.insightCard, { marginHorizontal: 20 }]}>
-          <Text style={styles.insightTitle}>Weekly Pattern</Text>
-          <Text style={styles.insightText}>
-            You tend to experience higher stress levels on{' '}
-            <Text style={styles.highlight}>
-              {insights.weeklyPattern.day}s
+        {/* Most Common Mood */}
+        {insights.mostCommonMood && (
+          <View style={[styles.insightCard, { marginHorizontal: 20 }]}>
+            <Text style={styles.insightTitle}>Most Common Mood</Text>
+            <View style={styles.moodDisplay}>
+              <View
+                style={[
+                  styles.moodCircleLarge,
+                  { backgroundColor: getColorForMood(insights.mostCommonMood) },
+                ]}
+              >
+                <Text style={styles.moodEmojiLarge}>
+                  {insights.mostCommonMood === "green" && "😌"}
+                  {insights.mostCommonMood === "yellow" && "😊"}
+                  {insights.mostCommonMood === "blue" && "😴"}
+                  {insights.mostCommonMood === "orange" && "🔥"}
+                  {insights.mostCommonMood === "red" && "😰"}
+                  {insights.mostCommonMood === "purple" && "😕"}
+                </Text>
+              </View>
+              <Text style={styles.moodLabelLarge}>
+                {getMoodLabel(insights.mostCommonMood)}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Weekly Pattern */}
+        {insights.weeklyPattern && (
+          <View style={[styles.insightCard, { marginHorizontal: 20 }]}>
+            <Text style={styles.insightTitle}>Weekly Pattern</Text>
+            <Text style={styles.insightText}>
+              You tend to experience higher stress levels on{" "}
+              <Text style={styles.highlight}>
+                {insights.weeklyPattern.day}s
+              </Text>{" "}
+              ({insights.weeklyPattern.rate}% of entries)
             </Text>
-            {' '}({insights.weeklyPattern.rate}% of entries)
-          </Text>
-        </View>
-      )}
+          </View>
+        )}
 
-      {/* Triggers */}
-      {insights.triggers.length > 0 && (
-        <View style={[styles.insightCard, { marginHorizontal: 20 }]}>
-          <Text style={styles.insightTitle}>Common Feelings</Text>
-          {insights.triggers.map((trigger, index) => (
-            <View key={index} style={styles.triggerItem}>
-              <View style={styles.triggerBar}>
-                <View
-                  style={[
-                    styles.triggerBarFill,
-                    { width: `${trigger.percentage}%` },
-                  ]}
-                />
+        {/* Triggers */}
+        {insights.triggers.length > 0 && (
+          <View style={[styles.insightCard, { marginHorizontal: 20 }]}>
+            <Text style={styles.insightTitle}>Common Feelings</Text>
+            {insights.triggers.map((trigger, index) => (
+              <View key={index} style={styles.triggerItem}>
+                <View style={styles.triggerBar}>
+                  <View
+                    style={[
+                      styles.triggerBarFill,
+                      { width: `${trigger.percentage}%` },
+                    ]}
+                  />
+                </View>
+                <View style={styles.triggerInfo}>
+                  <Text style={styles.triggerFeeling}>
+                    {trigger.feeling.charAt(0).toUpperCase() +
+                      trigger.feeling.slice(1)}
+                  </Text>
+                  <Text style={styles.triggerPercentage}>
+                    {Math.round(trigger.percentage)}%
+                  </Text>
+                </View>
               </View>
-              <View style={styles.triggerInfo}>
-                <Text style={styles.triggerFeeling}>
-                  {trigger.feeling.charAt(0).toUpperCase() +
-                    trigger.feeling.slice(1)}
-                </Text>
-                <Text style={styles.triggerPercentage}>
-                  {Math.round(trigger.percentage)}%
-                </Text>
+            ))}
+          </View>
+        )}
+
+        {/* Recommendations */}
+        {insights.recommendations.length > 0 && (
+          <View style={[styles.insightCard, { marginHorizontal: 20 }]}>
+            <Text style={styles.insightTitle}>Recommendations</Text>
+            {insights.recommendations.map((rec, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.recommendationItem,
+                  rec.priority === "high" && styles.recommendationHigh,
+                ]}
+              >
+                <Text style={styles.recommendationIcon}>{rec.icon}</Text>
+                <Text style={styles.recommendationText}>{rec.text}</Text>
               </View>
-            </View>
-          ))}
-        </View>
-      )}
+            ))}
+          </View>
+        )}
 
-      {/* Recommendations */}
-      {insights.recommendations.length > 0 && (
-        <View style={[styles.insightCard, { marginHorizontal: 20 }]}>
-          <Text style={styles.insightTitle}>Recommendations</Text>
-          {insights.recommendations.map((rec, index) => (
-            <View
-              key={index}
-              style={[
-                styles.recommendationItem,
-                rec.priority === 'high' && styles.recommendationHigh,
-              ]}
-            >
-              <Text style={styles.recommendationIcon}>{rec.icon}</Text>
-              <Text style={styles.recommendationText}>{rec.text}</Text>
-            </View>
-          ))}
-        </View>
-      )}
-
-      {insights.totalEntries === 0 && (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyEmoji}>📊</Text>
-          <Text style={styles.emptyText}>
-            Start tracking your mood to see insights and patterns!
-          </Text>
-        </View>
-      )}
+        {insights.totalEntries === 0 && (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyEmoji}>📊</Text>
+            <Text style={styles.emptyText}>
+              Start tracking your mood to see insights and patterns!
+            </Text>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -283,11 +305,11 @@ export default function InsightsScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#8E48BB',
+    backgroundColor: "#8E48BB",
   },
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: "#f9fafb",
   },
   content: {
     paddingTop: 0,
@@ -298,7 +320,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 20,
     marginBottom: 24,
-    paddingTop: Platform.OS === "android" ? (StatusBar.currentHeight || 0) + 12 : 12,
+    paddingTop:
+      Platform.OS === "android" ? (StatusBar.currentHeight || 0) + 12 : 12,
   },
   headerText: {
     fontSize: 22,
@@ -312,30 +335,30 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: '#6b7280',
-    fontWeight: '500',
+    color: "#6b7280",
+    fontWeight: "500",
     lineHeight: 24,
   },
   loadingText: {
     fontSize: 16,
-    color: '#6b7280',
-    textAlign: 'center',
+    color: "#6b7280",
+    textAlign: "center",
     marginTop: 50,
   },
   statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 28,
     paddingHorizontal: 20,
     gap: 12,
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 16,
     padding: 20,
-    alignItems: 'center',
-    shadowColor: '#000',
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
@@ -343,23 +366,23 @@ const styles = StyleSheet.create({
   },
   statNumber: {
     fontSize: 36,
-    fontWeight: '800',
-    color: '#8E48BB',
+    fontWeight: "800",
+    color: "#8E48BB",
     marginBottom: 8,
   },
   statLabel: {
     fontSize: 14,
-    color: '#6b7280',
-    textAlign: 'center',
-    fontWeight: '600',
+    color: "#6b7280",
+    textAlign: "center",
+    fontWeight: "600",
   },
   insightCard: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 16,
     padding: 24,
     marginBottom: 20,
     paddingHorizontal: 20,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
@@ -367,19 +390,19 @@ const styles = StyleSheet.create({
   },
   insightTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#1f2937',
+    fontWeight: "700",
+    color: "#1f2937",
     marginBottom: 18,
   },
   moodDisplay: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   moodCircleLarge: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 12,
   },
   moodEmojiLarge: {
@@ -387,60 +410,60 @@ const styles = StyleSheet.create({
   },
   moodLabelLarge: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#1f2937',
+    fontWeight: "600",
+    color: "#1f2937",
   },
   insightText: {
     fontSize: 16,
-    color: '#374151',
+    color: "#374151",
     lineHeight: 24,
   },
   highlight: {
-    fontWeight: '600',
-    color: '#8E48BB',
+    fontWeight: "600",
+    color: "#8E48BB",
   },
   triggerItem: {
     marginBottom: 16,
   },
   triggerBar: {
     height: 10,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: "#e5e7eb",
     borderRadius: 5,
     marginBottom: 10,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   triggerBarFill: {
-    height: '100%',
-    backgroundColor: '#8E48BB',
+    height: "100%",
+    backgroundColor: "#8E48BB",
     borderRadius: 5,
   },
   triggerInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   triggerFeeling: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#374151',
+    fontWeight: "600",
+    color: "#374151",
   },
   triggerPercentage: {
     fontSize: 15,
-    fontWeight: '700',
-    color: '#8E48BB',
+    fontWeight: "700",
+    color: "#8E48BB",
   },
   recommendationItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     marginBottom: 12,
     padding: 12,
-    backgroundColor: '#f9fafb',
+    backgroundColor: "#f9fafb",
     borderRadius: 12,
   },
   recommendationHigh: {
-    backgroundColor: '#fef2f2',
+    backgroundColor: "#fef2f2",
     borderLeftWidth: 4,
-    borderLeftColor: '#ef4444',
+    borderLeftColor: "#ef4444",
   },
   recommendationIcon: {
     fontSize: 24,
@@ -449,11 +472,11 @@ const styles = StyleSheet.create({
   recommendationText: {
     flex: 1,
     fontSize: 15,
-    color: '#374151',
+    color: "#374151",
     lineHeight: 22,
   },
   emptyState: {
-    alignItems: 'center',
+    alignItems: "center",
     padding: 40,
   },
   emptyEmoji: {
@@ -462,8 +485,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#6b7280',
-    textAlign: 'center',
+    color: "#6b7280",
+    textAlign: "center",
   },
 });
-

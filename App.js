@@ -1,10 +1,14 @@
 import React from "react";
+import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { StyleSheet } from "react-native";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+
+import { AuthProvider, useAuth } from "./src/utils/AuthContext";
 
 import HomeScreen from "./src/screens/HomeScreen";
 import MoodTrackingScreen from "./src/screens/MoodTrackingScreen";
@@ -16,19 +20,24 @@ import FocusTimerScreen from "./src/screens/FocusTimerScreen";
 import JournalScreen from "./src/screens/JournalScreen";
 import StoryDetailsScreen from "./src/screens/StoryDetailsScreen";
 import ShareConditionScreen from "./src/screens/ShareConditionScreen";
-import { Ionicons } from "@expo/vector-icons";
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
-// import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import LoginScreen from "./src/screens/LoginScreen";
+import SignupScreen from "./src/screens/SignupScreen";
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
+// ─── Loading splash shown while AsyncStorage token check runs ───────────────
+function LoadingScreen() {
+  return (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" color="#8E48BB" />
+    </View>
+  );
+}
+
+// ─── Bottom tab navigator (authenticated users only) ─────────────────────────
 function MainTabs() {
   const insets = useSafeAreaInsets();
-
   return (
     <Tab.Navigator
       screenOptions={{
@@ -87,78 +96,95 @@ function MainTabs() {
   );
 }
 
-export default function App() {
+// ─── Root navigator — switches stacks based on auth state ────────────────────
+function AppNavigator() {
+  const { isLoggedIn } = useAuth();
+
+  // Still checking AsyncStorage — show branded splash
+  if (isLoggedIn === null) {
+    return <LoadingScreen />;
+  }
+
   return (
     <SafeAreaProvider>
       <GestureHandlerRootView style={styles.container}>
         <NavigationContainer>
           <StatusBar style="auto" />
-          <Stack.Navigator
-            screenOptions={{
-              headerShown: false,
-            }}
-          >
-            <Stack.Screen name="MainTabs" component={MainTabs} />
-            <Stack.Screen
-              name="MoodTracking"
-              component={MoodTrackingScreen}
-              options={{
-                headerShown: true,
-                title: "Track Your Mood",
-                headerStyle: { backgroundColor: "#8E48BB" },
-                headerTintColor: "#fff",
-              }}
-            />
-            <Stack.Screen
-              name="BreathingExercise"
-              component={BreathingExerciseScreen}
-              options={{
-                headerShown: true,
-                title: "Breathing Exercise",
-                headerStyle: { backgroundColor: "#8E48BB" },
-                headerTintColor: "#fff",
-              }}
-            />
-            <Stack.Screen
-              name="FocusTimer"
-              component={FocusTimerScreen}
-              options={{
-                headerShown: true,
-                title: "Focus Timer",
-                headerStyle: { backgroundColor: "#8E48BB" },
-                headerTintColor: "#fff",
-              }}
-            />
-            <Stack.Screen
-              name="Journal"
-              component={JournalScreen}
-              options={{
-                headerShown: true,
-                title: "Daily Reflection",
-                headerStyle: { backgroundColor: "#8E48BB" },
-                headerTintColor: "#fff",
-              }}
-            />
-            <Stack.Screen
-              name="StoryDetails"
-              component={StoryDetailsScreen}
-              options={{
-                headerShown: true,
-                title: "Recovery Story",
-                headerStyle: { backgroundColor: "#8E48BB" },
-                headerTintColor: "#fff",
-              }}
-            />
-            <Stack.Screen
-              name="ShareCondition"
-              component={ShareConditionScreen}
-              options={{
-                headerShown: true,
-                title: "Share Your Condition",
-                headerStyle: { backgroundColor: "#8E48BB" },
-                headerTintColor: "#fff",
-              }}
-            />
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+
+            {isLoggedIn ? (
+              // ── Authenticated stack ──────────────────────────────────────
+              <>
+                <Stack.Screen name="MainTabs" component={MainTabs} />
+                <Stack.Screen
+                  name="MoodTracking"
+                  component={MoodTrackingScreen}
+                  options={{
+                    headerShown: true,
+                    title: "Track Your Mood",
+                    headerStyle: { backgroundColor: "#8E48BB" },
+                    headerTintColor: "#fff",
+                  }}
+                />
+                <Stack.Screen
+                  name="BreathingExercise"
+                  component={BreathingExerciseScreen}
+                  options={{
+                    headerShown: true,
+                    title: "Breathing Exercise",
+                    headerStyle: { backgroundColor: "#8E48BB" },
+                    headerTintColor: "#fff",
+                  }}
+                />
+                <Stack.Screen
+                  name="FocusTimer"
+                  component={FocusTimerScreen}
+                  options={{
+                    headerShown: true,
+                    title: "Focus Timer",
+                    headerStyle: { backgroundColor: "#8E48BB" },
+                    headerTintColor: "#fff",
+                  }}
+                />
+                <Stack.Screen
+                  name="Journal"
+                  component={JournalScreen}
+                  options={{
+                    headerShown: true,
+                    title: "Daily Reflection",
+                    headerStyle: { backgroundColor: "#8E48BB" },
+                    headerTintColor: "#fff",
+                  }}
+                />
+                <Stack.Screen
+                  name="StoryDetails"
+                  component={StoryDetailsScreen}
+                  options={{
+                    headerShown: true,
+                    title: "Recovery Story",
+                    headerStyle: { backgroundColor: "#8E48BB" },
+                    headerTintColor: "#fff",
+                  }}
+                />
+                <Stack.Screen
+                  name="ShareCondition"
+                  component={ShareConditionScreen}
+                  options={{
+                    headerShown: true,
+                    title: "Share Your Condition",
+                    headerStyle: { backgroundColor: "#8E48BB" },
+                    headerTintColor: "#fff",
+                  }}
+                />
+              </>
+            ) : (
+              // ── Unauthenticated stack ────────────────────────────────────
+              <>
+                <Stack.Screen name="Login" component={LoginScreen} />
+                <Stack.Screen name="Signup" component={SignupScreen} />
+              </>
+            )}
+
           </Stack.Navigator>
         </NavigationContainer>
       </GestureHandlerRootView>
@@ -166,8 +192,21 @@ export default function App() {
   );
 }
 
+// ─── Root export ─────────────────────────────────────────────────────────────
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppNavigator />
+    </AuthProvider>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: {
+  container: { flex: 1 },
+  loadingContainer: {
     flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f9fafb",
   },
 });

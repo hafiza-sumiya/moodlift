@@ -14,6 +14,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { storage } from "../utils/storage";
 import AchievementModal from "../components/AchievementModal";
+import { useNavigation } from "@react-navigation/native";
+import { useAuth } from "../utils/AuthContext";
 
 export default function ProfileScreen() {
   const [userName, setUserName] = useState("");
@@ -22,8 +24,10 @@ export default function ProfileScreen() {
   const [streak, setStreak] = useState(0);
   const [totalEntries, setTotalEntries] = useState(0);
   const [achievements, setAchievements] = useState({});
+  const { logout } = useAuth();
   const [achievementModalVisible, setAchievementModalVisible] = useState(false);
   const [selectedAchievementStreak, setSelectedAchievementStreak] = useState(0);
+  const navigation = useNavigation();
 
   useEffect(() => {
     loadProfileData();
@@ -286,6 +290,23 @@ export default function ProfileScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+
+        <TouchableOpacity
+          style={[styles.settingItem, { backgroundColor: "#8E48BB" }]}
+          onPress={async () => {
+            Alert.alert("Logout", "Are you sure you want to logout?", [
+              { text: "Cancel", style: "cancel" },
+              {
+                text: "Logout",
+                onPress: async () => {
+                  await logout();
+                },
+              },
+            ]);
+          }}
+        >
+          <Text style={{ color: "#fff", fontWeight: "700" }}>Logout</Text>
+        </TouchableOpacity>
 
         {/* App Info */}
         <View style={styles.appInfo}>

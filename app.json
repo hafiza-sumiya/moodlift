@@ -15,9 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.moodlift.app",
-      "runtimeVersion": {
-        "policy": "appVersion"
-      }
+      "runtimeVersion": "1.0.0"
     },
     "android": {
       "adaptiveIcon": {
@@ -25,7 +23,6 @@
       },
       "package": "com.moodlift.app",
       "permissions": [
-        "NOTIFICATIONS",
         "NOTIFICATIONS"
       ],
       "runtimeVersion": "1.0.0"

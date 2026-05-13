@@ -1,10 +1,22 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { storyService } from "../utils/storyService";
 import { storage } from "../utils/storage";
 
-export default function StoryCard({ story, onPress, onRequestPress, horizontal = false }) {
+const CONDITION_COLORS = {
+  Anxiety: "#f59e0b",
+  Depression: "#6366f1",
+  Burnout: "#ef4444",
+  Stress: "#f97316",
+  "Sleep Issues": "#3b82f6",
+  PTSD: "#8b5cf6",
+  OCD: "#ec4899",
+  "Panic Disorder": "#14b8a6",
+  Other: "#6b7280",
+};
+
+export default function StoryCard({ story, onPress, horizontal = false }) {
   const [liked, setLiked] = useState(false);
   const [likes, setLikes] = useState(story.likes || 0);
   const [liking, setLiking] = useState(false);
@@ -19,57 +31,68 @@ export default function StoryCard({ story, onPress, onRequestPress, horizontal =
   };
 
   const handleLike = async () => {
-    if (liked || liking) return; // already liked or in-progress
-
+    if (liked || liking) return;
     setLiking(true);
     try {
       const response = await storyService.likeStory(story._id);
       if (response.success) {
-        setLikes(response.data.likes);
+        // Like endpoint returns { success, liked, likes } — no data wrapper
+        setLikes(response.likes);
         setLiked(true);
         await storage.addLikedStory(story._id);
       }
     } catch (error) {
-      console.error('Error liking story:', error);
+      console.error("Error liking story:", error);
     } finally {
       setLiking(false);
     }
   };
-  const cardStyle = [
-    styles.card,
-    horizontal && styles.horizontalCard,
-  ];
+
+  const conditionColor = CONDITION_COLORS[story.condition] || "#8E48BB";
+  const cardStyle = [styles.card, horizontal && styles.horizontalCard];
+  const preview = story.story || story.content || "";
 
   return (
     <View style={cardStyle}>
-      <View style={styles.header}>
-        <Text style={styles.userName}>
-          {story.anonymous ? "Anonymous" : story.userName}
+      {/* Condition badge */}
+      <View style={[styles.conditionBadge, { backgroundColor: conditionColor + "18" }]}>
+        <View style={[styles.conditionDot, { backgroundColor: conditionColor }]} />
+        <Text style={[styles.conditionText, { color: conditionColor }]}>
+          {story.condition}
         </Text>
-        <Text style={styles.condition}>{story.condition}</Text>
       </View>
-      <Text style={styles.preview} numberOfLines={3}>
-        {story.story}
+
+      {/* Author */}
+      <Text style={styles.userName}>
+        {story.anonymous ? "Anonymous" : (story.userName || story.author || "User")}
       </Text>
+
+      {/* Story preview */}
+      <Text style={styles.preview} numberOfLines={3}>
+        {preview}
+      </Text>
+
+      {/* Actions */}
       <View style={styles.actions}>
         <TouchableOpacity
           style={[styles.likeBtn, liked && styles.likedBtn]}
           onPress={handleLike}
           disabled={liked || liking}
         >
-          <MaterialCommunityIcons
+          <Ionicons
             name={liked ? "heart" : "heart-outline"}
-            size={16}
-            color={liked ? "#ef4444" : "#6b7280"}
+            size={14}
+            color={liked ? "#ef4444" : "#9ca3af"}
           />
-          <Text style={[styles.likeText, liked && styles.likedText]}>{likes}</Text>
+          <Text style={[styles.likeText, liked && styles.likedText]}>
+            {likes}
+          </Text>
         </TouchableOpacity>
+
         <TouchableOpacity style={styles.readMoreBtn} onPress={onPress}>
-          <Text style={styles.readMoreText}>Read More</Text>
+          <Text style={styles.readMoreText}>Read Story</Text>
+          <Ionicons name="arrow-forward" size={13} color="#fff" />
         </TouchableOpacity>
-        {/* <TouchableOpacity style={styles.requestBtn} onPress={onRequestPress}>
-          <Text style={styles.requestText}>Request Personal Chat</Text>
-        </TouchableOpacity> */}
       </View>
     </View>
   );
@@ -78,38 +101,51 @@ export default function StoryCard({ story, onPress, onRequestPress, horizontal =
 const styles = StyleSheet.create({
   card: {
     backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 14,
+    shadowColor: "#8E48BB",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
   horizontalCard: {
     marginBottom: 0,
-    marginRight: 12,
-    width: 220,
+    marginRight: 14,
+    width: 240,
   },
-  header: {
-    marginBottom: 8,
+  conditionBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    marginBottom: 10,
+    gap: 5,
+  },
+  conditionDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  conditionText: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
   userName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700",
     color: "#111827",
-  },
-  condition: {
-    fontSize: 13,
-    color: "#8E48BB",
-    marginTop: 2,
+    marginBottom: 6,
   },
   preview: {
-    fontSize: 14,
-    color: "#4b5563",
+    fontSize: 13,
+    color: "#6b7280",
     lineHeight: 20,
-    marginBottom: 12,
+    marginBottom: 14,
   },
   actions: {
     flexDirection: "row",
@@ -119,42 +155,38 @@ const styles = StyleSheet.create({
   likeBtn: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 5,
     paddingVertical: 6,
-    paddingHorizontal: 8,
-    backgroundColor: "#f3f4f6",
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    backgroundColor: "#f9fafb",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
   },
   likedBtn: {
     backgroundColor: "#fef2f2",
+    borderColor: "#fecaca",
   },
   likeText: {
     fontSize: 12,
-    color: "#6b7280",
-    marginLeft: 4,
+    color: "#9ca3af",
     fontWeight: "600",
   },
   likedText: {
     color: "#ef4444",
   },
   readMoreBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
     paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     backgroundColor: "#8E48BB",
-    borderRadius: 10,
+    borderRadius: 12,
   },
   readMoreText: {
     color: "#fff",
     fontWeight: "700",
-  },
-  requestBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: "#eef2ff",
-    borderRadius: 10,
-  },
-  requestText: {
-    color: "#4f46e5",
-    fontWeight: "600",
-    fontSize: 12,
+    fontSize: 13,
   },
 });

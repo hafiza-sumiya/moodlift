@@ -13,27 +13,21 @@ export default StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 6,
     elevation: 6,
-
-    // 🔥 rounded bottom (modern feel)
     borderBottomLeftRadius: 16,
     borderBottomRightRadius: 16,
   },
 
   pageHeaderText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "400",
     color: "#fff",
-
-    // 🔥 spacing
     letterSpacing: 0.5,
   },
 
   heading: {
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: 14,
+    fontWeight: "700",
     color: "#111827",
-
-    // 🔥 better readability
     letterSpacing: 0.3,
     marginBottom: 4,
   },

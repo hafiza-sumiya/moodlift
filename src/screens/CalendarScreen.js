@@ -18,6 +18,7 @@ import {
   getColorForMood,
   getMoodLabel,
 } from "../utils/helpers";
+import api from "../utils/api";
 
 export default function CalendarScreen() {
   const [moodData, setMoodData] = useState([]);
@@ -25,11 +26,22 @@ export default function CalendarScreen() {
 
   useEffect(() => {
     loadMoodData();
-  }, [selectedWeek]);
+  }, []);
 
   const loadMoodData = async () => {
+    setLoading(true);
     const data = await storage.getMoodData();
     setMoodData(data);
+    setLoading(false);
+  };
+
+  const fetchFromBackend = async () => {
+    try {
+      const res = await api.request("/moods", { method: "GET" });
+      setMoodData(res.data || []);
+    } catch (err) {
+      console.log("Backend fetch failed");
+    }
   };
 
   const getMoodForDate = (date) => {
@@ -53,6 +65,15 @@ export default function CalendarScreen() {
 
   const weekDates = getWeekDatesForView();
   const today = new Date();
+  const [loading, setLoading] = useState(true);
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -67,6 +88,10 @@ export default function CalendarScreen() {
 
         {/* Week Navigation */}
         <View style={[styles.weekNavigation, { paddingHorizontal: 20 }]}>
+          <TouchableOpacity onPress={() => setSelectedWeek(0)}>
+            <Text style={{ color: "#8E48BB", fontWeight: "700" }}>Today</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.navButton}
             onPress={() => setSelectedWeek(selectedWeek - 1)}
@@ -78,14 +103,7 @@ export default function CalendarScreen() {
             />
             <Text style={styles.navButtonText}>Previous</Text>
           </TouchableOpacity>
-          <Text style={styles.weekLabel}>
-            Week{" "}
-            {selectedWeek === 0
-              ? "(Current)"
-              : selectedWeek > 0
-                ? `+${selectedWeek}`
-                : selectedWeek}
-          </Text>
+
           <TouchableOpacity
             style={styles.navButton}
             onPress={() => setSelectedWeek(selectedWeek + 1)}
@@ -104,6 +122,7 @@ export default function CalendarScreen() {
           {weekDates.map((date, index) => {
             const mood = getMoodForDate(date);
             const isToday = getDateKey(date) === getDateKey(today);
+            const isFuture = date > today;
             const dayName = getDayName(date);
             const dayNumber = date.getDate();
 
@@ -132,13 +151,21 @@ export default function CalendarScreen() {
                       {mood.color === "purple" && "😕"}
                     </Text>
                   </View>
-                ) : (
+                ) : isFuture || isToday ? (
                   <View style={[styles.moodCircle, styles.emptyCircle]} />
-                )}
-                {mood && (
-                  <Text style={styles.moodLabel} numberOfLines={1}>
-                    {getMoodLabel(mood.color)}
-                  </Text>
+                ) : (
+                  <View
+                    style={[
+                      styles.moodCircle,
+                      {
+                        backgroundColor: "#fee2e2",
+                        borderWidth: 1,
+                        borderColor: "#ef4444",
+                      },
+                    ]}
+                  >
+                    <Text style={{ fontSize: 18 }}>❌</Text>
+                  </View>
                 )}
               </View>
             );
@@ -146,47 +173,34 @@ export default function CalendarScreen() {
         </View>
 
         {/* Legend */}
-        <View style={[styles.legend, { marginHorizontal: 20 }]}>
-          <Text style={styles.legendTitle}>Mood Colors</Text>
+        <View style={styles.legendCard}>
+          <Text style={styles.legendTitle}>Mood Guide</Text>
+
           <View style={styles.legendGrid}>
-            <View style={styles.legendItem}>
-              <View
-                style={[styles.legendCircle, { backgroundColor: "#10b981" }]}
-              />
-              <Text style={styles.legendText}>Good / Calm</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View
-                style={[styles.legendCircle, { backgroundColor: "#f59e0b" }]}
-              />
-              <Text style={styles.legendText}>Normal / Okay</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View
-                style={[styles.legendCircle, { backgroundColor: "#ef4444" }]}
-              />
-              <Text style={styles.legendText}>Stressed</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View
-                style={[styles.legendCircle, { backgroundColor: "#3b82f6" }]}
-              />
-              <Text style={styles.legendText}>Tired</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View
-                style={[styles.legendCircle, { backgroundColor: "#f97316" }]}
-              />
-              <Text style={styles.legendText}>Motivated</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View
-                style={[styles.legendCircle, { backgroundColor: "#a855f7" }]}
-              />
-              <Text style={styles.legendText}>Confused</Text>
-            </View>
+            {[
+              { color: "#10b981", label: "Calm 😌" },
+              { color: "#f59e0b", label: "Okay 😊" },
+              { color: "#ef4444", label: "Stressed 😰" },
+              { color: "#3b82f6", label: "Tired 😴" },
+              { color: "#f97316", label: "Motivated 🔥" },
+              { color: "#a855f7", label: "Confused 😕" },
+            ].map((item, index) => (
+              <View key={index} style={styles.legendItemNew}>
+                <View
+                  style={[
+                    styles.legendCircleNew,
+                    { backgroundColor: item.color },
+                  ]}
+                />
+                <Text style={styles.legendTextNew}>{item.label}</Text>
+              </View>
+            ))}
           </View>
         </View>
+
+        <Text style={{ textAlign: "center", marginBottom: 10 }}>
+          Total Entries: {moodData.length}
+        </Text>
 
         {/* Recent Moods */}
         <View style={[styles.recentSection, { marginHorizontal: 20 }]}>
@@ -374,9 +388,9 @@ const styles = StyleSheet.create({
   },
   todayCircle: {},
   emptyCircle: {
-    backgroundColor: "#e5e7eb",
-    borderColor: "#d1d5db",
-    borderStyle: "dashed",
+    backgroundColor: "#fee2e2",
+    borderWidth: 1,
+    borderColor: "#ef4444",
   },
   moodEmoji: {
     fontSize: 24,
@@ -423,16 +437,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     borderRadius: 6,
     marginBottom: 4,
-  },
-  legendCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    marginRight: 8,
-  },
-  legendText: {
-    fontSize: 14,
-    color: "#374151",
   },
   recentSection: {
     backgroundColor: "#fff",
@@ -546,5 +550,40 @@ const styles = StyleSheet.create({
     color: "#6b7280",
     lineHeight: 18,
     fontStyle: "italic",
+  },
+  legendCard: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 20,
+    marginHorizontal: 20,
+    marginBottom: 28,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+
+  legendItemNew: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f3f4f6",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    marginBottom: 10,
+  },
+
+  legendCircleNew: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    marginRight: 10,
+  },
+
+  legendTextNew: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#374151",
   },
 });

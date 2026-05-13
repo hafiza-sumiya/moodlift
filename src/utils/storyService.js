@@ -133,7 +133,7 @@ export const commentService = {
     }
   },
 
-  // Create comment
+  // Create comment or reply (pass parentId for replies)
   async createComment(storyId, commentData) {
     try {
       const response = await api.createComment(storyId, {
@@ -141,7 +141,21 @@ export const commentService = {
         text: commentData.text,
         email: commentData.email,
         anonymous: commentData.anonymous !== false,
+        parentId: commentData.parentId || null,
       });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Edit own comment text
+  async updateComment(storyId, commentId, newText) {
+    try {
+      const response = await api.request(
+        `/stories/${storyId}/comments/${commentId}`,
+        { method: "PATCH", body: JSON.stringify({ text: newText }) },
+      );
       return response;
     } catch (error) {
       throw error;
@@ -158,7 +172,7 @@ export const commentService = {
     }
   },
 
-  // Delete comment
+  // Delete comment (and its replies on the backend)
   async deleteComment(storyId, commentId) {
     try {
       const response = await api.deleteComment(storyId, commentId);
