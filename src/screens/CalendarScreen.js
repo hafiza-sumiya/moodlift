@@ -1,589 +1,698 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Platform,
-  StatusBar,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  Dimensions, StatusBar,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
 import { storage } from "../utils/storage";
-import {
-  getWeekDates,
-  getDayName,
-  getDateKey,
-  getColorForMood,
-  getMoodLabel,
-} from "../utils/helpers";
-import api from "../utils/api";
+import { getDateKey } from "../utils/helpers";
+import LogoLoader from "../components/LogoLoader";
 
+const { width: SCREEN_W } = Dimensions.get("window");
+const CELL_W = (SCREEN_W - 48) / 7;
+
+// ─── Mood map ─────────────────────────────────────────────────────────────────
+const MOOD_MAP = {
+  green: { emoji: "😌", label: "Calm", color: "#10B981", bg: "#D1FAE5" },
+  yellow: { emoji: "😊", label: "Hopeful", color: "#F59E0B", bg: "#FEF3C7" },
+  orange: { emoji: "🔥", label: "Motivated", color: "#F97316", bg: "#FFEDD5" },
+  blue: { emoji: "😴", label: "Tired", color: "#3B82F6", bg: "#DBEAFE" },
+  purple: { emoji: "😕", label: "Confused", color: "#A855F7", bg: "#F3E8FF" },
+  red: { emoji: "😰", label: "Stressed", color: "#EF4444", bg: "#FEE2E2" },
+};
+
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function formatDateFull(date) {
+  const d = new Date(date);
+  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const months = MONTH_NAMES;
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${months[d.getMonth()]} ${day}, ${days[d.getDay()]}`;
+}
+
+// ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function CalendarScreen() {
-  const [moodData, setMoodData] = useState([]);
-  const [selectedWeek, setSelectedWeek] = useState(0);
+  const today = new Date();
 
-  useEffect(() => {
-    loadMoodData();
-  }, []);
+  const [moodData, setMoodData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(10);
+  const [year, setYear] = useState(today.getFullYear());
+  const [month, setMonth] = useState(today.getMonth());
+  const [selectedDate, setSelectedDate] = useState(today);
+
+  useFocusEffect(
+    useCallback(() => { loadMoodData(); }, [])
+  );
 
   const loadMoodData = async () => {
     setLoading(true);
     const data = await storage.getMoodData();
-    setMoodData(data);
+    setMoodData(Array.isArray(data) ? data : []);
     setLoading(false);
   };
 
-  const fetchFromBackend = async () => {
-    try {
-      const res = await api.request("/moods", { method: "GET" });
-      setMoodData(res.data || []);
-    } catch (err) {
-      console.log("Backend fetch failed");
-    }
+  // Build moodData lookup by date key
+  const moodByKey = {};
+  moodData.forEach((e) => { if (e.date) moodByKey[e.date] = e; });
+
+  const getMoodForDate = (date) => moodByKey[getDateKey(date)] || null;
+
+  // Navigate months
+  const prevMonth = () => {
+    if (month === 0) { setMonth(11); setYear(y => y - 1); }
+    else setMonth(m => m - 1);
+  };
+  const nextMonth = () => {
+    if (month === 11) { setMonth(0); setYear(y => y + 1); }
+    else setMonth(m => m + 1);
   };
 
-  const getMoodForDate = (date) => {
-    const dateKey = getDateKey(date);
-    return moodData.find((entry) => entry.date === dateKey);
+  // Build calendar grid
+  const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+
+  const cells = Array.from({ length: totalCells }, (_, i) => {
+    const dayNum = i - firstDay + 1;
+    if (dayNum < 1 || dayNum > daysInMonth) return null;
+    return new Date(year, month, dayNum);
+  });
+
+  // Selected day data
+  const selKey = getDateKey(selectedDate);
+  const selEntry = moodByKey[selKey];
+  const selMood = selEntry ? MOOD_MAP[selEntry.color] : null;
+
+  const isToday = (date) => date && getDateKey(date) === getDateKey(today);
+  const isSelected = (date) => date && getDateKey(date) === selKey;
+
+  const handleLoadMore = () => {
+    setLoadingMore(true);
+    setTimeout(() => {
+      setVisibleCount((c) => c + 10);
+      setLoadingMore(false);
+    }, 1000);
   };
 
-  const getWeekDatesForView = () => {
-    const today = new Date();
-    const startDate = new Date(today);
-    startDate.setDate(today.getDate() - today.getDay() + selectedWeek * 7);
+  const recentMoods = [...moodData]
+    .filter((e) => e.date)
+    .sort((a, b) => b.date.localeCompare(a.date));
 
-    const dates = [];
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(startDate);
-      date.setDate(startDate.getDate() + i);
-      dates.push(date);
-    }
-    return dates;
-  };
-
-  const weekDates = getWeekDatesForView();
-  const today = new Date();
-  const [loading, setLoading] = useState(true);
-
-  if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <Text>Loading...</Text>
-      </View>
-    );
-  }
+  if (loading) return <LogoLoader />;
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.content}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerText}>Mood Calendar</Text>
+    <View style={s.root}>
+      <StatusBar barStyle="dark-content" backgroundColor="#C7D2F5" />
+      <SafeAreaView style={s.safe} edges={["top"]}>
+
+        {/* ── Big Header ───────────────────────────────────────────────── */}
+        <View style={s.bigHeader}>
+          <Text style={s.bigTitle}>Mood{"\n"}Calendar</Text>
+          {/* decorative cloud shapes */}
+          <View style={s.cloud1} />
+          <View style={s.cloud2} />
         </View>
 
-        {/* Week Navigation */}
-        <View style={[styles.weekNavigation, { paddingHorizontal: 20 }]}>
-          <TouchableOpacity onPress={() => setSelectedWeek(0)}>
-            <Text style={{ color: "#8E48BB", fontWeight: "700" }}>Today</Text>
-          </TouchableOpacity>
+        <ScrollView
+          style={s.scroll}
+          contentContainerStyle={s.content}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* ── Calendar Card ─────────────────────────────────────────── */}
+          <View style={s.calCard}>
 
-          <TouchableOpacity
-            style={styles.navButton}
-            onPress={() => setSelectedWeek(selectedWeek - 1)}
-          >
-            <MaterialCommunityIcons
-              name="chevron-left"
-              size={24}
-              color="#8E48BB"
-            />
-            <Text style={styles.navButtonText}>Previous</Text>
-          </TouchableOpacity>
+            {/* Month nav */}
+            <View style={s.monthRow}>
+              <TouchableOpacity onPress={prevMonth} style={s.navBtn} activeOpacity={0.7}>
+                <Ionicons name="chevron-back" size={20} color="#555" />
+              </TouchableOpacity>
+              <Text style={s.monthLabel}>{MONTH_NAMES[month]} {year}</Text>
+              <TouchableOpacity onPress={nextMonth} style={s.navBtn} activeOpacity={0.7}>
+                <Ionicons name="chevron-forward" size={20} color="#555" />
+              </TouchableOpacity>
+            </View>
 
-          <TouchableOpacity
-            style={styles.navButton}
-            onPress={() => setSelectedWeek(selectedWeek + 1)}
-          >
-            <Text style={styles.navButtonText}>Next</Text>
-            <MaterialCommunityIcons
-              name="chevron-right"
-              size={24}
-              color="#8E48BB"
-            />
-          </TouchableOpacity>
-        </View>
+            {/* Day-of-week header */}
+            <View style={s.dayLabelRow}>
+              {DAY_LABELS.map((d) => (
+                <Text key={d} style={s.dayLabel}>{d}</Text>
+              ))}
+            </View>
 
-        {/* Calendar Grid */}
-        <View style={[styles.calendarGrid, { paddingHorizontal: 20 }]}>
-          {weekDates.map((date, index) => {
-            const mood = getMoodForDate(date);
-            const isToday = getDateKey(date) === getDateKey(today);
-            const isFuture = date > today;
-            const dayName = getDayName(date);
-            const dayNumber = date.getDate();
+            {/* Calendar grid */}
+            <View style={s.grid}>
+              {cells.map((date, i) => {
+                if (!date) {
+                  return <View key={`empty-${i}`} style={s.cell} />;
+                }
+                const mood = getMoodForDate(date);
+                const moodInfo = mood ? MOOD_MAP[mood.color] : null;
+                const today_ = isToday(date);
+                const sel = isSelected(date);
+                const future = date > today && !today_;
 
-            return (
-              <View key={index} style={styles.dayContainer}>
-                <Text style={[styles.dayName, isToday && styles.todayText]}>
-                  {dayName}
-                </Text>
-                <Text style={[styles.dayNumber, isToday && styles.todayText]}>
-                  {dayNumber}
-                </Text>
-                {mood ? (
-                  <View
+                return (
+                  <TouchableOpacity
+                    key={i}
                     style={[
-                      styles.moodCircle,
-                      { backgroundColor: getColorForMood(mood.color) },
-                      isToday && styles.todayCircle,
+                      s.cell,
+                      sel && s.cellSelected,
                     ]}
+                    onPress={() => setSelectedDate(date)}
+                    activeOpacity={0.8}
                   >
-                    <Text style={styles.moodEmoji}>
-                      {mood.color === "green" && "😌"}
-                      {mood.color === "yellow" && "😊"}
-                      {mood.color === "blue" && "😴"}
-                      {mood.color === "orange" && "🔥"}
-                      {mood.color === "red" && "😰"}
-                      {mood.color === "purple" && "😕"}
-                    </Text>
-                  </View>
-                ) : isFuture || isToday ? (
-                  <View style={[styles.moodCircle, styles.emptyCircle]} />
-                ) : (
-                  <View
-                    style={[
-                      styles.moodCircle,
-                      {
-                        backgroundColor: "#fee2e2",
-                        borderWidth: 1,
-                        borderColor: "#ef4444",
-                      },
-                    ]}
-                  >
-                    <Text style={{ fontSize: 18 }}>❌</Text>
-                  </View>
-                )}
-              </View>
-            );
-          })}
-        </View>
-
-        {/* Legend */}
-        <View style={styles.legendCard}>
-          <Text style={styles.legendTitle}>Mood Guide</Text>
-
-          <View style={styles.legendGrid}>
-            {[
-              { color: "#10b981", label: "Calm 😌" },
-              { color: "#f59e0b", label: "Okay 😊" },
-              { color: "#ef4444", label: "Stressed 😰" },
-              { color: "#3b82f6", label: "Tired 😴" },
-              { color: "#f97316", label: "Motivated 🔥" },
-              { color: "#a855f7", label: "Confused 😕" },
-            ].map((item, index) => (
-              <View key={index} style={styles.legendItemNew}>
-                <View
-                  style={[
-                    styles.legendCircleNew,
-                    { backgroundColor: item.color },
-                  ]}
-                />
-                <Text style={styles.legendTextNew}>{item.label}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        <Text style={{ textAlign: "center", marginBottom: 10 }}>
-          Total Entries: {moodData.length}
-        </Text>
-
-        {/* Recent Moods */}
-        <View style={[styles.recentSection, { marginHorizontal: 20 }]}>
-          <Text style={styles.recentTitle}>Recent Moods</Text>
-          {moodData
-            .slice(-7)
-            .reverse()
-            .map((entry, index) => (
-              <View key={index} style={styles.recentItem}>
-                <View
-                  style={[
-                    styles.recentMoodCircle,
-                    { backgroundColor: getColorForMood(entry.color) },
-                  ]}
-                />
-                <View style={styles.recentInfo}>
-                  <Text style={styles.recentDate}>{entry.date}</Text>
-                  <Text style={styles.recentMood}>
-                    {getMoodLabel(entry.color)} • {entry.feeling}
-                  </Text>
-                  {entry.groundingExercise &&
-                    Object.keys(entry.groundingExercise).length > 0 && (
-                      <View style={styles.groundingBadge}>
-                        <Text style={styles.groundingBadgeText}>
-                          🧘 Grounding Exercise Completed
+                    {moodInfo ? (
+                      // Day with mood — show emoji in colored circle
+                      <View style={[
+                        s.moodCell,
+                        { backgroundColor: today_ ? "#4F62C0" : "#BDC8F0" },
+                        sel && { backgroundColor: "#4F62C0" },
+                      ]}>
+                        <Text style={s.moodEmoji}>{moodInfo.emoji}</Text>
+                      </View>
+                    ) : (
+                      // Day without mood — plain number circle
+                      <View style={[
+                        s.emptyCell,
+                        today_ && s.todayCell,
+                        future && s.futureCell,
+                      ]}>
+                        <Text style={[
+                          s.cellNum,
+                          today_ && s.cellNumToday,
+                          !today_ && !future && !moodInfo && s.cellNumMuted,
+                        ]}>
+                          {date.getDate()}
                         </Text>
                       </View>
                     )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Expand hint */}
+            <View style={s.expandHint}>
+              <Ionicons name="chevron-down" size={18} color="#9CA3AF" />
+            </View>
+          </View>
+
+          {/* ── Selected Day Panel ────────────────────────────────────── */}
+          <View style={s.detailCard}>
+            {/* Gradient layers */}
+            <View style={s.detailGradBase} />
+            <View style={s.detailGradMid} />
+
+            <View style={s.detailRow}>
+              <View style={s.detailLeft}>
+                <View style={s.detailDateRow}>
+                  <Text style={s.detailDate}>{formatDateFull(selectedDate)}</Text>
+                  <Ionicons name="pencil" size={14} color="rgba(255,255,255,0.7)" style={{ marginLeft: 6 }} />
                 </View>
-              </View>
-            ))}
-          {moodData.length === 0 && (
-            <Text style={styles.emptyText}>
-              No mood data yet. Start tracking your mood!
-            </Text>
-          )}
-        </View>
 
-        {/* Grounding Exercise Details */}
-        {moodData.some(
-          (entry) =>
-            entry.groundingExercise &&
-            Object.keys(entry.groundingExercise).length > 0,
-        ) && (
-          <View style={[styles.groundingSection, { marginHorizontal: 20 }]}>
-            <Text style={styles.groundingSectionTitle}>
-              Grounding Exercise History
-            </Text>
-            {moodData
-              .filter(
-                (entry) =>
-                  entry.groundingExercise &&
-                  Object.keys(entry.groundingExercise).length > 0,
-              )
-              .slice(-5)
-              .reverse()
-              .map((entry, index) => (
-                <View key={index} style={styles.groundingCard}>
-                  <Text style={styles.groundingCardDate}>{entry.date}</Text>
-                  <View style={styles.groundingResponses}>
-                    {Object.entries(entry.groundingExercise).map(
-                      ([step, response]) => {
-                        const stepNumber = parseInt(step);
-                        const stepInfo = [
-                          { number: 5, sense: "things you can see" },
-                          { number: 4, sense: "things you can touch" },
-                          { number: 3, sense: "things you can hear" },
-                          { number: 2, sense: "things you can smell" },
-                          { number: 1, sense: "thing you can taste" },
-                        ][stepNumber - 1];
-
-                        return (
-                          <View key={step} style={styles.groundingResponseItem}>
-                            <Text style={styles.groundingResponseLabel}>
-                              {stepInfo.number} {stepInfo.sense}:
-                            </Text>
-                            <Text style={styles.groundingResponseText}>
-                              {response || "(Not filled)"}
-                            </Text>
-                          </View>
-                        );
-                      },
+                {selEntry ? (
+                  <>
+                    <Text style={s.detailFeeling}>I was feeling</Text>
+                    <View style={s.tagRow}>
+                      {selEntry.color && (
+                        <View style={s.tag}>
+                          <Text style={s.tagText}>{selMood?.emoji} {selMood?.label}</Text>
+                        </View>
+                      )}
+                      {selEntry.feeling && (
+                        <View style={s.tag}>
+                          <Text style={s.tagText}>😊 {selEntry.feeling}</Text>
+                        </View>
+                      )}
+                    </View>
+                    {selEntry.groundingExercise && Object.keys(selEntry.groundingExercise).length > 0 && (
+                      <View style={[s.tag, { marginTop: 6, backgroundColor: "rgba(255,255,255,0.18)" }]}>
+                        <Text style={s.tagText}>🧘 Grounding done</Text>
+                      </View>
                     )}
-                  </View>
+                  </>
+                ) : (
+                  <Text style={s.detailFeeling}>No mood logged for this day</Text>
+                )}
+              </View>
+
+              <View style={s.detailRight}>
+                {selMood ? (
+                  <Text style={s.bigEmoji}>{selMood.emoji}</Text>
+                ) : (
+                  <Text style={s.bigEmoji}>🌿</Text>
+                )}
+              </View>
+            </View>
+          </View>
+
+          {/* ── Legend ───────────────────────────────────────────────── */}
+          <View style={s.legendCard}>
+            <Text style={s.legendTitle}>Mood Guide</Text>
+            <View style={s.legendGrid}>
+              {Object.entries(MOOD_MAP).map(([key, m]) => (
+                <View key={key} style={s.legendItem}>
+                  <View style={[s.legendDot, { backgroundColor: m.color }]} />
+                  <Text style={s.legendText}>{m.emoji} {m.label}</Text>
                 </View>
               ))}
+            </View>
           </View>
-        )}
-      </ScrollView>
-    </SafeAreaView>
+
+
+          {/* ── Recent Moods ─────────────────────────────────────────── */}
+          <View style={s.recentSection}>
+            <View style={s.recentHeader}>
+              <Text style={s.recentTitle}>📖 Recent Moods</Text>
+              <Text style={s.recentCount}>{recentMoods.length} entries</Text>
+            </View>
+
+            {recentMoods.length === 0 ? (
+              <View style={s.emptyMoods}>
+                <Text style={s.emptyMoodEmoji}>🌱</Text>
+                <Text style={s.emptyMoodText}>No entries yet — start tracking!</Text>
+              </View>
+            ) : (
+              recentMoods.slice(0, visibleCount).map((entry, i) => {
+                const m = MOOD_MAP[entry.color];
+                const hasGrounding = entry.groundingExercise &&
+                  Object.keys(entry.groundingExercise).length > 0;
+                return (
+                  <View key={i} style={[s.recentCard, { borderLeftColor: m?.color || "#C7D2F5" }]}>
+                    <View style={[s.recentCardBg, { backgroundColor: (m?.color || "#C7D2F5") + "15" }]} />
+                    <View style={s.recentEmojiBubble}>
+                      <Text style={s.recentEmojiText}>{m?.emoji || "🌿"}</Text>
+                    </View>
+                    <View style={s.recentCardBody}>
+                      <Text style={s.recentDate}>{entry.date}</Text>
+                      <Text style={[s.recentMoodLabel, { color: m?.color || "#6B7280" }]}>
+                        {m?.label || "Unknown mood"}
+                      </Text>
+                      {entry.feeling ? (
+                        <Text style={s.recentFeeling}>"{entry.feeling}"</Text>
+                      ) : null}
+                      {hasGrounding && (
+                        <View style={s.groundingTag}>
+                          <Text style={s.groundingTagText}>🧘 Grounding done</Text>
+                        </View>
+                      )}
+                    </View>
+                    <View style={[s.recentBadge, { backgroundColor: m?.color || "#9CA3AF" }]}>
+                      <Text style={s.recentBadgeNum}>#{i + 1}</Text>
+                    </View>
+                  </View>
+                );
+              })
+            )}
+
+            {recentMoods.length > visibleCount && (
+              loadingMore ? (
+                <View style={s.loadMoreLoader}>
+                  <LogoLoader size={52} showText={false} style={s.miniLoader} />
+                </View>
+              ) : (
+                <TouchableOpacity style={s.loadMoreBtn} onPress={handleLoadMore} activeOpacity={0.8}>
+                  <Text style={s.loadMoreText}>Load more  ↓</Text>
+                </TouchableOpacity>
+              )
+            )}
+          </View>
+
+          <View style={{ height: 32 }} />
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  calendarWrapper: {
-    backgroundColor: "#fff",
-    marginHorizontal: 20,
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
+// ─── Styles ──────────────────────────────────────────────────────────────────
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: "#C7D2F5" },
+  safe: { flex: 1 },
+  scroll: { flex: 1 },
+  content: { paddingBottom: 20 },
+
+  // Big header (blue bg area with title)
+  bigHeader: {
+    backgroundColor: "#C7D2F5",
+    paddingTop: 16,
+    paddingHorizontal: 24,
+    paddingBottom: 24,
+    overflow: "hidden",
+  },
+  bigTitle: {
+    fontSize: 36,
+    fontWeight: "800",
+    color: "#3B4FBF",
+    lineHeight: 42,
+  },
+  // Decorative cloud blobs
+  cloud1: {
+    position: "absolute", right: 20, top: 10,
+    width: 70, height: 38,
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderRadius: 19,
+  },
+  cloud2: {
+    position: "absolute", right: 50, top: 32,
+    width: 100, height: 38,
+    backgroundColor: "rgba(255,255,255,0.5)",
+    borderRadius: 19,
   },
 
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#8E48BB",
+  // Calendar card
+  calCard: {
+    backgroundColor: "#fff",
+    borderRadius: 24,
+    marginHorizontal: 16,
+    padding: 16,
+    shadowColor: "#3B4FBF",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
+    marginBottom: 16,
   },
-  container: {
-    flex: 1,
-    backgroundColor: "#f9fafb",
-  },
-  content: {
-    paddingTop: 0,
-    paddingBottom: 32,
-  },
-  header: {
-    backgroundColor: "#8E48BB",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    marginBottom: 24,
-    paddingTop:
-      Platform.OS === "android" ? (StatusBar.currentHeight || 0) + 12 : 12,
-  },
-  headerText: {
-    fontSize: 22,
-    fontWeight: "400",
-    color: "#fff",
-    letterSpacing: -0.5,
-  },
-  weekNavigation: {
+
+  monthRow: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 28,
-    paddingHorizontal: 20,
+    marginBottom: 16,
   },
-  navButton: {
-    padding: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
+  navBtn: {
+    width: 34, height: 34, borderRadius: 17,
+    backgroundColor: "#F3F4F6",
+    justifyContent: "center", alignItems: "center",
   },
-  navButtonText: {
-    color: "#8E48BB",
+  monthLabel: {
+    fontSize: 16,
     fontWeight: "700",
-    fontSize: 15,
+    color: "#1F2937",
   },
-  weekLabel: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#374151",
-  },
-  calendarGrid: {
+
+  dayLabelRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 32,
-  },
-  dayContainer: {
-    alignItems: "center",
-    flex: 1,
-  },
-  dayName: {
-    fontSize: 12,
-    color: "#6b7280",
-    marginBottom: 4,
-    fontWeight: "600",
-  },
-  dayNumber: {
-    fontSize: 14,
-    color: "#374151",
     marginBottom: 8,
   },
-  todayText: {
-    color: "#8E48BB",
-    fontWeight: "bold",
+  dayLabel: {
+    width: CELL_W,
+    textAlign: "center",
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#9CA3AF",
   },
-  moodCircle: {
-    width: 35,
-    height: 35,
-    borderRadius: 17.5,
+
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  cell: {
+    width: CELL_W,
+    height: CELL_W,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 2,
+  },
+  cellSelected: {
+    // highlight handled inside the moodCell/emptyCell
+  },
+
+  // Cell with mood
+  moodCell: {
+    width: CELL_W - 6,
+    height: CELL_W - 6,
+    borderRadius: (CELL_W - 6) / 2,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#BDC8F0",
+  },
+  moodEmoji: { fontSize: 20 },
+
+  // Cell without mood
+  emptyCell: {
+    width: CELL_W - 6,
+    height: CELL_W - 6,
+    borderRadius: (CELL_W - 6) / 2,
+    backgroundColor: "#EEF0F8",
     justifyContent: "center",
     alignItems: "center",
   },
-  todayCircle: {},
-  emptyCircle: {
-    backgroundColor: "#fee2e2",
-    borderWidth: 1,
-    borderColor: "#ef4444",
+  todayCell: {
+    backgroundColor: "#C7D2F5",
+    borderWidth: 2,
+    borderColor: "#4F62C0",
   },
-  moodEmoji: {
-    fontSize: 24,
+  futureCell: {
+    backgroundColor: "transparent",
   },
-  moodLabel: {
-    fontSize: 10,
-    color: "#6b7280",
-    textAlign: "center",
-    maxWidth: 60,
+  cellNum: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#374151",
   },
-  legend: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 24,
-    marginBottom: 28,
-    marginHorizontal: 20,
-    shadowColor: "#000",
+  cellNumToday: {
+    color: "#3B4FBF",
+    fontWeight: "800",
+  },
+  cellNumMuted: {
+    color: "#9CA3AF",
+  },
+
+  expandHint: {
+    alignItems: "center",
+    marginTop: 8,
+  },
+
+  // Detail card (selected day)
+  detailCard: {
+    marginHorizontal: 16,
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 16,
+    overflow: "hidden",
+    shadowColor: "#3B4FBF",
     shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
+    minHeight: 120,
+  },
+  detailGradBase: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#3B4FBF",
+    borderRadius: 24,
+  },
+  detailGradMid: {
+    position: "absolute",
+    top: 0, right: 0,
+    width: "50%", height: "100%",
+    backgroundColor: "#5B6FDF",
+    borderTopRightRadius: 24,
+    borderBottomRightRadius: 24,
+    opacity: 0.7,
+  },
+  detailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    zIndex: 1,
+  },
+  detailLeft: { flex: 1 },
+  detailRight: { marginLeft: 12 },
+
+  detailDateRow: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
+  detailDate: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#fff",
+    lineHeight: 24,
+    flexShrink: 1,
+  },
+  detailFeeling: {
+    fontSize: 13,
+    color: "rgba(255,255,255,0.75)",
+    marginBottom: 8,
+  },
+  tagRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  tag: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  tagText: { fontSize: 12, color: "#fff", fontWeight: "600" },
+  bigEmoji: { fontSize: 52 },
+
+  // Legend
+  legendCard: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    marginHorizontal: 16,
+    padding: 20,
+    shadowColor: "#3B4FBF",
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 3,
   },
   legendTitle: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: "700",
-    color: "#1f2937",
-    marginBottom: 18,
+    color: "#1F2937",
+    marginBottom: 14,
   },
   legendGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-between",
+    gap: 10,
   },
   legendItem: {
     flexDirection: "row",
     alignItems: "center",
-    width: "48%",
-    marginBottom: 12,
+    width: "46%",
+    backgroundColor: "#F9FAFB",
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
   },
-  todayBadge: {
-    fontSize: 10,
-    color: "#fff",
-    backgroundColor: "#6366f1",
-    paddingHorizontal: 6,
-    borderRadius: 6,
-    marginBottom: 4,
+  legendDot: {
+    width: 10, height: 10, borderRadius: 5,
+    marginRight: 8,
   },
+  legendText: {
+    fontSize: 12,
+    color: "#374151",
+    fontWeight: "600",
+  },
+
+  // ── Recent Moods ───────────────────────────────────────────────
   recentSection: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 24,
-    marginHorizontal: 20,
-    marginBottom: 28,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
+    marginHorizontal: 16,
+    marginTop: 28,
+  },
+  recentHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
   },
   recentTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#1f2937",
-    marginBottom: 18,
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#1F2937",
   },
-  recentItem: {
+  recentCount: {
+    fontSize: 12,
+    color: "#9CA3AF",
+    fontWeight: "600",
+  },
+  recentCard: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
-  },
-  recentMoodCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
-  },
-  recentInfo: {
-    flex: 1,
-  },
-  recentDate: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#1f2937",
-    marginBottom: 4,
-  },
-  recentMood: {
-    fontSize: 13,
-    color: "#6b7280",
-  },
-  emptyText: {
-    fontSize: 14,
-    color: "#9ca3af",
-    textAlign: "center",
-    padding: 20,
-  },
-  groundingBadge: {
-    marginTop: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: "#ecfdf5",
-    borderRadius: 8,
-    alignSelf: "flex-start",
-  },
-  groundingBadgeText: {
-    fontSize: 12,
-    color: "#065f46",
-    fontWeight: "500",
-  },
-  groundingSection: {
     backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 20,
-    marginTop: 16,
-    shadowColor: "#000",
+    marginBottom: 10,
+    padding: 14,
+    overflow: "hidden",
+    shadowColor: "#3B4FBF",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.07,
+    shadowRadius: 6,
     elevation: 3,
   },
-  groundingSectionTitle: {
-    fontSize: 18,
+  recentCardBg: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 18,
+  },
+  recentEmojiBubble: {
+    width: 46, height: 46, borderRadius: 23,
+    backgroundColor: "#EEF0F8",
+    justifyContent: "center", alignItems: "center",
+    marginRight: 12,
+    zIndex: 1,
+  },
+  recentEmojiText: { fontSize: 24 },
+  recentCardBody: { flex: 1, zIndex: 1 },
+  recentDate: {
+    fontSize: 11,
+    color: "#9CA3AF",
     fontWeight: "600",
-    color: "#1f2937",
-    marginBottom: 16,
+    marginBottom: 2,
   },
-  groundingCard: {
-    backgroundColor: "#f9fafb",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: "#8E48BB",
+  recentMoodLabel: {
+    fontSize: 15,
+    fontWeight: "800",
+    marginBottom: 2,
   },
-  groundingCardDate: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#8E48BB",
-    marginBottom: 12,
-  },
-  groundingResponses: {
-    gap: 8,
-  },
-  groundingResponseItem: {
-    marginBottom: 8,
-  },
-  groundingResponseLabel: {
+  recentFeeling: {
     fontSize: 12,
-    fontWeight: "600",
-    color: "#374151",
-    marginBottom: 4,
-  },
-  groundingResponseText: {
-    fontSize: 12,
-    color: "#6b7280",
-    lineHeight: 18,
+    color: "#6B7280",
     fontStyle: "italic",
   },
-  legendCard: {
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    padding: 20,
-    marginHorizontal: 20,
-    marginBottom: 28,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
+  groundingTag: {
+    marginTop: 5,
+    backgroundColor: "#ECFDF5",
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    alignSelf: "flex-start",
   },
-
-  legendItemNew: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f3f4f6",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    marginBottom: 10,
-  },
-
-  legendCircleNew: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    marginRight: 10,
-  },
-
-  legendTextNew: {
-    fontSize: 13,
+  groundingTagText: {
+    fontSize: 11,
+    color: "#065F46",
     fontWeight: "600",
-    color: "#374151",
   },
+  recentBadge: {
+    width: 30, height: 30, borderRadius: 15,
+    justifyContent: "center", alignItems: "center",
+    marginLeft: 8, zIndex: 1,
+  },
+  recentBadgeNum: {
+    fontSize: 10, color: "#fff", fontWeight: "800",
+  },
+
+  // Load more
+  loadMoreLoader: {
+    height: 80,
+    justifyContent: "center", alignItems: "center",
+    backgroundColor: "transparent",
+  },
+  miniLoader: {
+    flex: 0,
+    backgroundColor: "transparent",
+    width: 80, height: 80,
+  },
+  loadMoreBtn: {
+    backgroundColor: "#3B4FBF",
+    borderRadius: 20,
+    paddingVertical: 12,
+    alignItems: "center",
+    marginTop: 4,
+    shadowColor: "#3B4FBF",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  loadMoreText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 14,
+  },
+
+  emptyMoods: {
+    alignItems: "center",
+    paddingVertical: 32,
+  },
+  emptyMoodEmoji: { fontSize: 40, marginBottom: 8 },
+  emptyMoodText: { fontSize: 13, color: "#9CA3AF", fontWeight: "600" },
 });
