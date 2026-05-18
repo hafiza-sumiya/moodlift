@@ -15,7 +15,7 @@ import {
   COLORS, SHADOWS, SPACING, RADIUS, FONT, WEIGHT, MOOD, POSITIVE_MOODS,
 } from "../styles/theme";
 import {
-  FadeSlideIn, ScaleIn, MoodProgressBar, CalmButton, MoodOptionChip, NextStepBanner,
+  FadeSlideIn, ScaleIn, MoodProgressBar, NextStepBanner,
 } from "../components/EmotionalComponents";
 
 const { width: SCREEN_W } = Dimensions.get("window");
@@ -28,12 +28,12 @@ const QUESTIONS = [
     subtitle: "Try to pinpoint the source — even if it's unclear.",
     options: [
       { label: "Something someone said", emoji: "💬" },
-      { label: "My own thoughts",        emoji: "🧠" },
-      { label: "Stress",                 emoji: "😤" },
-      { label: "Overthinking",           emoji: "🌀" },
-      { label: "Tiredness",              emoji: "😴" },
-      { label: "Nothing specific",       emoji: "🤷" },
-      { label: "I don't know",           emoji: "❓" },
+      { label: "My own thoughts", emoji: "🧠" },
+      { label: "Stress", emoji: "😤" },
+      { label: "Overthinking", emoji: "🌀" },
+      { label: "Tiredness", emoji: "😴" },
+      { label: "Nothing specific", emoji: "🤷" },
+      { label: "I don't know", emoji: "❓" },
     ],
   },
   {
@@ -41,10 +41,10 @@ const QUESTIONS = [
     question: "Was the situation actually serious?",
     subtitle: "Be honest with yourself — no judgment here.",
     options: [
-      { label: "Just overthinking",   emoji: "🌀" },
-      { label: "Somewhat",            emoji: "🤔" },
-      { label: "It was real stress",  emoji: "⚡" },
-      { label: "Very serious",        emoji: "🔥" },
+      { label: "Just overthinking", emoji: "🌀" },
+      { label: "Somewhat", emoji: "🤔" },
+      { label: "It was real stress", emoji: "⚡" },
+      { label: "Very serious", emoji: "🔥" },
     ],
   },
   {
@@ -53,8 +53,8 @@ const QUESTIONS = [
     subtitle: "Sometimes we're more sensitive on certain days.",
     options: [
       { label: "Yes, definitely", emoji: "😟" },
-      { label: "Maybe",           emoji: "🤷" },
-      { label: "No",              emoji: "✅" },
+      { label: "Maybe", emoji: "🤷" },
+      { label: "No", emoji: "✅" },
     ],
   },
   {
@@ -62,13 +62,13 @@ const QUESTIONS = [
     question: "What did you need most in that moment?",
     subtitle: "Understanding your needs helps you meet them.",
     options: [
-      { label: "Rest",        emoji: "🛌" },
-      { label: "Silence",     emoji: "🤫" },
-      { label: "Comfort",     emoji: "🤗" },
-      { label: "Motivation",  emoji: "⚡" },
-      { label: "Escape",      emoji: "🚶" },
-      { label: "Sleep",       emoji: "💤" },
-      { label: "Connection",  emoji: "🫂" },
+      { label: "Rest", emoji: "🛌" },
+      { label: "Silence", emoji: "🤫" },
+      { label: "Comfort", emoji: "🤗" },
+      { label: "Motivation", emoji: "⚡" },
+      { label: "Escape", emoji: "🚶" },
+      { label: "Sleep", emoji: "💤" },
+      { label: "Connection", emoji: "🫂" },
     ],
   },
   {
@@ -76,9 +76,9 @@ const QUESTIONS = [
     question: "Where did you feel this emotion?",
     subtitle: "Emotions often live in the body as much as the mind.",
     options: [
-      { label: "Mind",       emoji: "🧠" },
-      { label: "Body",       emoji: "🫀" },
-      { label: "Both",       emoji: "✨" },
+      { label: "Mind", emoji: "🧠" },
+      { label: "Body", emoji: "🫀" },
+      { label: "Both", emoji: "✨" },
       { label: "Everywhere", emoji: "🌊" },
     ],
   },
@@ -87,13 +87,13 @@ const QUESTIONS = [
     question: "Did this feeling change your behavior?",
     subtitle: "Notice how emotions show up in your actions.",
     options: [
-      { label: "Avoided people",       emoji: "🚪" },
-      { label: "Lost focus",           emoji: "💭" },
-      { label: "Became quiet",         emoji: "🤐" },
-      { label: "Became angry",         emoji: "😡" },
-      { label: "Overthought more",     emoji: "🌀" },
-      { label: "Emotionally drained",  emoji: "🪫" },
-      { label: "None of these",        emoji: "✅" },
+      { label: "Avoided people", emoji: "🚪" },
+      { label: "Lost focus", emoji: "💭" },
+      { label: "Became quiet", emoji: "🤐" },
+      { label: "Became angry", emoji: "😡" },
+      { label: "Overthought more", emoji: "🌀" },
+      { label: "Emotionally drained", emoji: "🪫" },
+      { label: "None of these", emoji: "✅" },
     ],
   },
 ];
@@ -102,18 +102,17 @@ const TOTAL_Q = QUESTIONS.length;
 
 // ─── AI-style Emotional Summary Generator ────────────────────────────────────
 function generateSummary(mood, answers) {
-  const moodName   = mood?.color?.label?.toLowerCase() || "overwhelmed";
-  const moodColor  = mood?.color?.name || "purple";
-  const trigger    = answers?.trigger    || "";
-  const severity   = answers?.severity   || "";
-  const amplified  = answers?.amplified  || "";
-  const need       = answers?.need       || "";
-  const location   = answers?.location   || "";
-  const behavior   = answers?.behavior   || "";
+  const moodName = mood?.color?.label?.toLowerCase() || "overwhelmed";
+  const moodColor = mood?.color?.name || "purple";
+  const trigger = answers?.trigger || "";
+  const severity = answers?.severity || "";
+  const amplified = answers?.amplified || "";
+  const need = answers?.need || "";
+  const location = answers?.location || "";
+  const behavior = answers?.behavior || "";
 
   const summaries = [];
 
-  // Core emotional read
   if (moodColor === "red" || moodColor === "purple") {
     if (trigger === "My own thoughts" || trigger === "Overthinking") {
       summaries.push(`You seem mentally exhausted more than truly ${moodName}. Your mind is working hard — maybe too hard right now.`);
@@ -128,12 +127,10 @@ function generateSummary(mood, answers) {
     summaries.push(`Your emotional state feels mixed right now — which is actually very human and normal.`);
   }
 
-  // Amplification insight
   if (amplified === "Yes, definitely") {
     summaries.push(`It sounds like you're more sensitive than usual today. That often means your emotional reserves are lower — rest matters more than you think.`);
   }
 
-  // Behavior pattern
   if (behavior === "Avoided people" || behavior === "Became quiet") {
     summaries.push(`Withdrawing can feel protective, but sometimes connection — even brief — can ease the heaviness more than isolation.`);
   } else if (behavior === "Overthought more" || behavior === "Lost focus") {
@@ -142,7 +139,6 @@ function generateSummary(mood, answers) {
     summaries.push(`Emotional drain often signals that you've been carrying more than you realize. Gentle rest — not productivity — is what heals this.`);
   }
 
-  // Need-based suggestion
   if (need === "Rest" || need === "Sleep") {
     summaries.push(`Your body and mind are both asking for recovery time. Even 20 minutes of real rest can shift your emotional state meaningfully.`);
   } else if (need === "Connection") {
@@ -151,46 +147,139 @@ function generateSummary(mood, answers) {
     summaries.push(`You're craving safety right now — and that's completely okay. Self-compassion is not weakness; it's recovery.`);
   }
 
-  // Body awareness
   if (location === "Body" || location === "Both" || location === "Everywhere") {
     summaries.push(`You're feeling this in your body, not just your mind. Physical movement — even a slow walk — can help your nervous system release stored tension.`);
   }
 
-  // Trim to 3 max for readability
   return summaries.slice(0, 3);
 }
 
-// ─── Question Card ────────────────────────────────────────────────────────────
-function QuestionCard({ q, index, selected, onSelect }) {
+// ─── Option Pill ─────────────────────────────────────────────────────────────
+function OptionPill({ label, emoji, selected, onPress }) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const handlePress = () => {
+    Animated.sequence([
+      Animated.timing(scale, { toValue: 0.96, duration: 80, useNativeDriver: true }),
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true, tension: 120, friction: 6 }),
+    ]).start();
+    onPress?.();
+  };
+
+  return (
+    <Animated.View style={{ transform: [{ scale }], width: "100%", marginBottom: 12 }}>
+      <TouchableOpacity
+        style={[
+          pillStyles.container,
+          selected && pillStyles.selectedContainer
+        ]}
+        onPress={handlePress}
+        activeOpacity={0.8}
+      >
+        <View style={[pillStyles.leftCircle, selected && pillStyles.selectedLeftCircle]}>
+          {emoji && <Text style={pillStyles.emoji}>{emoji}</Text>}
+        </View>
+        <Text style={[pillStyles.label, selected && pillStyles.selectedLabel]}>{label}</Text>
+        <MaterialCommunityIcons
+          name={selected ? "checkbox-marked" : "checkbox-blank-outline"}
+          size={24}
+          color={selected ? "#B8C5DD" : "#A0AAB8"}
+        />
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
+
+const pillStyles = StyleSheet.create({
+  container: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F4ECEC",
+    borderRadius: 30,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    width: "100%",
+  },
+  selectedContainer: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#B8C5DD",
+    borderWidth: 2,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  leftCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#EBE0E0",
+    marginRight: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  selectedLeftCircle: {
+    backgroundColor: "#D9E2F2",
+  },
+  emoji: {
+    fontSize: 18,
+  },
+  label: {
+    flex: 1,
+    fontSize: 16,
+    color: "#303A4B",
+    fontWeight: "600",
+  },
+  selectedLabel: {
+    color: "#202A3B",
+  }
+});
+
+// ─── Question Area ────────────────────────────────────────────────────────────
+function QuestionArea({ q, index, selected, onSelect, onNext }) {
   const opacity = useRef(new Animated.Value(0)).current;
   const ty = useRef(new Animated.Value(28)).current;
+
   useEffect(() => {
+    opacity.setValue(0);
+    ty.setValue(28);
     Animated.parallel([
       Animated.timing(opacity, { toValue: 1, duration: 400, useNativeDriver: true }),
       Animated.spring(ty, { toValue: 0, useNativeDriver: true, tension: 70, friction: 10 }),
     ]).start();
-  }, [index]);
+  }, [index, opacity, ty]);
 
   return (
-    <Animated.View style={{ opacity, transform: [{ translateY: ty }] }}>
-      <View style={qStyles.card}>
+    <Animated.View style={{ opacity, transform: [{ translateY: ty }], flex: 1 }}>
+      <View style={styles.questionTextWrap}>
         <Text style={qStyles.counter}>{index + 1} of {TOTAL_Q}</Text>
         <Text style={qStyles.question}>{q.question}</Text>
         {q.subtitle && <Text style={qStyles.subtitle}>{q.subtitle}</Text>}
-        <View style={qStyles.options}>
-          {q.options.map((opt) => {
-            const isSelected = selected === opt.label;
-            return (
-              <MoodOptionChip
-                key={opt.label}
-                label={opt.label}
-                emoji={opt.emoji}
-                selected={isSelected}
-                onPress={() => onSelect(opt.label)}
-              />
-            );
-          })}
-        </View>
+      </View>
+
+      <View style={qStyles.optionsContainer}>
+        {q.options.map((opt) => {
+          const isSelected = selected === opt.label;
+          return (
+            <OptionPill
+              key={opt.label}
+              label={opt.label}
+              emoji={opt.emoji}
+              selected={isSelected}
+              onPress={() => onSelect(opt.label)}
+            />
+          );
+        })}
+
+        {selected && (
+          <FadeSlideIn delay={100}>
+            <TouchableOpacity
+              style={styles.nextBtn}
+              onPress={onNext}
+            >
+              <Text style={styles.nextBtnText}>
+                {index < TOTAL_Q - 1 ? "Confirm" : "See my emotional read"}
+              </Text>
+            </TouchableOpacity>
+          </FadeSlideIn>
+        )}
       </View>
     </Animated.View>
   );
@@ -215,7 +304,7 @@ function SummaryView({ mood, answers, onContinue, navigation }) {
         </Text>
         {summaryLines.map((line, i) => (
           <View key={i} style={sumStyles.lineCard}>
-            <MaterialCommunityIcons name="leaf" size={16} color={COLORS.primary} style={{ marginTop: 2 }} />
+            <MaterialCommunityIcons name="leaf" size={16} color={"#B8C5DD"} style={{ marginTop: 2 }} />
             <Text style={sumStyles.lineText}>{line}</Text>
           </View>
         ))}
@@ -232,7 +321,7 @@ function SummaryView({ mood, answers, onContinue, navigation }) {
             title="Write in your Journal"
             subtitle="Put this reflection into words"
             onPress={() => navigation.replace("Journal")}
-            color={COLORS.primary}
+            color={"#303A4B"}
           />
           <View style={{ height: SPACING.sm }} />
           <NextStepBanner
@@ -240,7 +329,7 @@ function SummaryView({ mood, answers, onContinue, navigation }) {
             title="Breathing Exercise"
             subtitle="2 minutes to calm your nervous system"
             onPress={() => navigation.replace("BreathingExercise")}
-            color="#059669"
+            color="#303A4B"
           />
         </View>
         <TouchableOpacity style={sumStyles.doneBtn} onPress={onContinue}>
@@ -254,12 +343,12 @@ function SummaryView({ mood, answers, onContinue, navigation }) {
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function DeepReflectionScreen() {
   const navigation = useNavigation();
-  const route      = useRoute();
-  const mood       = route.params?.mood || {};
+  const route = useRoute();
+  const mood = route.params?.mood || {};
 
   const [currentQ, setCurrentQ] = useState(0);
-  const [answers, setAnswers]   = useState({});
-  const [done, setDone]         = useState(false);
+  const [answers, setAnswers] = useState({});
+  const [done, setDone] = useState(false);
 
   const handleSelect = (value) => {
     const qId = QUESTIONS[currentQ].id;
@@ -272,7 +361,12 @@ export default function DeepReflectionScreen() {
       } else {
         setDone(true);
       }
-    }, 350);
+    }, 450);
+  };
+
+  const handleNext = () => {
+    if (currentQ < TOTAL_Q - 1) setCurrentQ((p) => p + 1);
+    else setDone(true);
   };
 
   const handleBack = () => {
@@ -280,7 +374,6 @@ export default function DeepReflectionScreen() {
     else navigation.goBack();
   };
 
-  // ── Done → Summary
   if (done) {
     return (
       <SafeAreaView style={styles.safe} edges={["bottom"]}>
@@ -301,52 +394,26 @@ export default function DeepReflectionScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Progress */}
-        <View style={styles.progressRow}>
-          <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
-            <MaterialCommunityIcons name="chevron-left" size={22} color={COLORS.primary} />
-          </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <MoodProgressBar step={currentQ + 1} total={TOTAL_Q} />
+        <View style={styles.topSection}>
+          <View style={styles.progressRow}>
+            <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
+              <MaterialCommunityIcons name="chevron-left" size={22} color={"#303A4B"} />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
+              <MoodProgressBar step={currentQ + 1} total={TOTAL_Q} color="#B8C5DD" />
+            </View>
+            <Text style={styles.progressText}>{currentQ + 1}/{TOTAL_Q}</Text>
           </View>
-          <Text style={styles.progressText}>{currentQ + 1}/{TOTAL_Q}</Text>
         </View>
 
-        {/* Intro header */}
-        {currentQ === 0 && (
-          <FadeSlideIn style={styles.introWrap}>
-            <Text style={styles.introTitle}>Understand this feeling 🌿</Text>
-            <Text style={styles.introSub}>
-              6 gentle questions. No wrong answers. Just honest reflection.
-            </Text>
-          </FadeSlideIn>
-        )}
-
-        {/* Question */}
-        <QuestionCard
+        <QuestionArea
           key={currentQ}
           q={QUESTIONS[currentQ]}
           index={currentQ}
           selected={answers[QUESTIONS[currentQ].id]}
           onSelect={handleSelect}
+          onNext={handleNext}
         />
-
-        {/* Manual next (if already answered but wants to change) */}
-        {answers[QUESTIONS[currentQ].id] && (
-          <FadeSlideIn delay={200}>
-            <TouchableOpacity
-              style={styles.nextBtn}
-              onPress={() => {
-                if (currentQ < TOTAL_Q - 1) setCurrentQ((p) => p + 1);
-                else setDone(true);
-              }}
-            >
-              <Text style={styles.nextBtnText}>
-                {currentQ < TOTAL_Q - 1 ? "Next question →" : "See my emotional read →"}
-              </Text>
-            </TouchableOpacity>
-          </FadeSlideIn>
-        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -354,8 +421,12 @@ export default function DeepReflectionScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLORS.bgBase },
-  content: { padding: SPACING.xl, paddingBottom: 60 },
+  safe: { flex: 1, backgroundColor: "#F8EFEF" },
+  content: { flexGrow: 1, paddingBottom: 0 },
+  topSection: {
+    paddingHorizontal: SPACING.xl,
+    paddingTop: SPACING.xl,
+  },
   progressRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -367,41 +438,60 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff", justifyContent: "center", alignItems: "center",
     ...SHADOWS.sm,
   },
-  progressText: { fontSize: FONT.xs, color: COLORS.textMuted, fontWeight: WEIGHT.medium, minWidth: 28, textAlign: "right" },
+  progressText: { fontSize: FONT.xs, color: "#677d99ff", fontWeight: WEIGHT.medium, minWidth: 28, textAlign: "right" },
   introWrap: { marginBottom: SPACING.xl },
-  introTitle: { fontSize: FONT.xl, fontWeight: WEIGHT.extrabold, color: COLORS.textPrimary, marginBottom: SPACING.sm },
-  introSub:   { fontSize: FONT.base, color: COLORS.textMuted, lineHeight: 22 },
+  introTitle: { fontSize: FONT.xl, fontWeight: WEIGHT.extrabold, color: "#303A4B", marginBottom: SPACING.sm },
+  introSub: { fontSize: FONT.base, color: "#6B7A8E", lineHeight: 22 },
+  questionTextWrap: {
+    paddingHorizontal: SPACING.xl,
+    marginBottom: SPACING.xl,
+  },
   nextBtn: {
     marginTop: SPACING.xl,
-    backgroundColor: "#fff",
+    backgroundColor: "#F4ECEC",
     borderRadius: RADIUS.full,
-    padding: SPACING.md,
+    padding: 18,
     alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: COLORS.primary,
+    ...SHADOWS.sm,
   },
-  nextBtnText: { color: COLORS.primary, fontWeight: WEIGHT.bold, fontSize: FONT.base },
+  nextBtnText: { color: "#6B7A8E", fontWeight: WEIGHT.bold, fontSize: 16 },
 });
 
 const qStyles = StyleSheet.create({
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: RADIUS.xl,
-    padding: SPACING.xl,
-    ...SHADOWS.card,
+  counter: {
+    fontSize: FONT.sm,
+    color: "#7B8A9E",
+    fontWeight: WEIGHT.bold,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginBottom: SPACING.md,
+    textAlign: "center"
   },
-  counter:  { fontSize: FONT.xs, color: COLORS.primary, fontWeight: WEIGHT.bold, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: SPACING.sm },
-  question: { fontSize: FONT.xl, fontWeight: WEIGHT.extrabold, color: COLORS.textPrimary, lineHeight: 30, marginBottom: SPACING.xs },
-  subtitle: { fontSize: FONT.sm, color: COLORS.textMuted, lineHeight: 20, marginBottom: SPACING.lg },
-  options:  { flexDirection: "row", flexWrap: "wrap", gap: SPACING.sm, marginTop: SPACING.md },
+  question: {
+    fontSize: 18,
+    fontWeight: WEIGHT.semibold,
+    color: "#303A4B",
+    lineHeight: 34,
+    marginVertical: SPACING.xxxl,
+    textAlign: "center"
+  },
+  optionsContainer: {
+    backgroundColor: "#b6bdc9ff",
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+    paddingTop: 30,
+    paddingHorizontal: SPACING.xl,
+    paddingBottom: 60,
+    flexGrow: 1,
+  },
 });
 
 const sumStyles = StyleSheet.create({
-  wrap:        { padding: SPACING.xl, paddingBottom: 60 },
-  topBadge:    { alignItems: "center", marginBottom: SPACING.xl },
-  topEmoji:    { fontSize: 72 },
-  title:       { fontSize: FONT.xxl, fontWeight: WEIGHT.extrabold, color: COLORS.textPrimary, marginBottom: SPACING.sm },
-  disclaimer:  { fontSize: FONT.sm, color: COLORS.textMuted, marginBottom: SPACING.xl, lineHeight: 20 },
+  wrap: { padding: SPACING.xl, paddingBottom: 60 },
+  topBadge: { alignItems: "center", marginBottom: SPACING.xl },
+  topEmoji: { fontSize: 72 },
+  title: { fontSize: 26, fontWeight: WEIGHT.extrabold, color: "#303A4B", marginBottom: SPACING.sm, textAlign: "center" },
+  disclaimer: { fontSize: FONT.sm, color: "#6B7A8E", marginBottom: SPACING.xl, lineHeight: 20, textAlign: "center" },
   lineCard: {
     flexDirection: "row",
     gap: SPACING.md,
@@ -409,14 +499,14 @@ const sumStyles = StyleSheet.create({
     borderRadius: RADIUS.lg,
     padding: SPACING.lg,
     marginBottom: SPACING.md,
-    borderLeftWidth: 3,
-    borderLeftColor: COLORS.primaryLight,
+    borderLeftWidth: 4,
+    borderLeftColor: "#B8C5DD",
     ...SHADOWS.sm,
   },
-  lineText:    { flex: 1, fontSize: FONT.base, color: COLORS.textSecondary, lineHeight: 24, fontWeight: WEIGHT.medium },
-  reminder:    { fontSize: FONT.sm, color: COLORS.primary, textAlign: "center", marginTop: SPACING.md, lineHeight: 22, fontStyle: "italic", marginBottom: SPACING.xl },
-  nextSteps:   { marginTop: SPACING.md },
-  nextTitle:   { fontSize: FONT.sm, fontWeight: WEIGHT.bold, color: COLORS.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: SPACING.md },
-  doneBtn:     { alignItems: "center", padding: SPACING.lg, marginTop: SPACING.xl },
-  doneBtnText: { color: COLORS.textMuted, fontWeight: WEIGHT.medium, fontSize: FONT.base },
+  lineText: { flex: 1, fontSize: FONT.base, color: "#303A4B", lineHeight: 24, fontWeight: WEIGHT.medium },
+  reminder: { fontSize: FONT.sm, color: "#7B8A9E", textAlign: "center", marginTop: SPACING.md, lineHeight: 22, fontStyle: "italic", marginBottom: SPACING.xl },
+  nextSteps: { marginTop: SPACING.md },
+  nextTitle: { fontSize: FONT.sm, fontWeight: WEIGHT.bold, color: "#6B7A8E", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: SPACING.md },
+  doneBtn: { alignItems: "center", padding: SPACING.lg, marginTop: SPACING.xl, backgroundColor: "#3c5e9cff", borderRadius: RADIUS.full },
+  doneBtnText: { color: "#fff", fontWeight: WEIGHT.bold, fontSize: FONT.base },
 });

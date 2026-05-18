@@ -27,6 +27,11 @@ export default function SignupScreen({ navigation }) {
       Alert.alert("Success", "Account created!");
       await authService.login({ email, password });
       login();
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        navigation.replace("MainTabs");
+      }
     } catch (err) {
       Alert.alert("Signup failed", err.message);
     } finally {

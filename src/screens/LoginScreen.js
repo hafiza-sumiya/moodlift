@@ -20,6 +20,11 @@ export default function LoginScreen({ navigation }) {
       setLoading(true);
       await authService.login({ email, password });
       login();
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        navigation.replace("MainTabs");
+      }
     } catch {
       alert("Login failed. Check your credentials.");
     } finally {

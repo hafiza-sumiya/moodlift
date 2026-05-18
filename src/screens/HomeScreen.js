@@ -13,6 +13,7 @@ import StoryCard from "../components/StoryCard";
 import LogoLoader, { LogoImage } from "../components/LogoLoader";
 import { COLORS, SHADOWS, SPACING, RADIUS, FONT, WEIGHT, MOOD, POSITIVE_MOODS } from "../styles/theme";
 import { FadeSlideIn } from "../components/EmotionalComponents";
+import { useProtectedAction } from "../hooks/useProtectedAction";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 
@@ -235,6 +236,7 @@ const fab = StyleSheet.create({
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function HomeScreen() {
   const navigation = useNavigation();
+  const requireAuth = useProtectedAction();
 
   const [userName, setUserName] = useState("");
   const [streak, setStreak] = useState(0);
@@ -305,7 +307,7 @@ export default function HomeScreen() {
 
   const handleModalContinue = () => {
     setShowModal(false);
-    navigation.navigate("MoodTracking");
+    requireAuth(() => navigation.navigate("MoodTracking"));
   };
 
   return (
@@ -331,20 +333,16 @@ export default function HomeScreen() {
 
               <TouchableOpacity
                 style={s.iconBtn}
-                onPress={() => navigation.navigate('Journal')}
-
+                onPress={() => requireAuth(() => navigation.navigate('Journal'))}
               >
                 <MaterialCommunityIcons name="notebook-outline" size={20} color={COLORS.primary} />
               </TouchableOpacity>
 
-
-
-
               <TouchableOpacity
                 style={s.iconBtn}
-                onPress={() =>
+                onPress={() => requireAuth(() => 
                   Alert.alert("Daily Reminders", "✓ Fill mood tracker\n✓ Do 2 min breathing")
-                }
+                )}
               >
                 <Ionicons name="notifications-outline" size={20} color={COLORS.primary} />
               </TouchableOpacity>
@@ -377,7 +375,7 @@ export default function HomeScreen() {
                   <TouchableOpacity
                     key={action.key}
                     style={[s.qaCard, { backgroundColor: action.bg }]}
-                    onPress={() => navigation.navigate(action.route)}
+                    onPress={() => requireAuth(() => navigation.navigate(action.route))}
                     activeOpacity={0.8}
                   >
                     <View style={[s.qaIcon, { backgroundColor: action.iconColor + "22" }]}>
@@ -403,7 +401,7 @@ export default function HomeScreen() {
           <AnimatedCard delay={400}>
             <View style={s.sectionHeader}>
               <Text style={s.sectionTitle}>Recovery Stories</Text>
-              <TouchableOpacity onPress={() => navigation.navigate("ShareCondition")}>
+              <TouchableOpacity onPress={() => requireAuth(() => navigation.navigate("ShareCondition"))}>
                 <Text style={s.sectionLink}>Share yours →</Text>
               </TouchableOpacity>
             </View>
@@ -435,7 +433,7 @@ export default function HomeScreen() {
               <View style={s.storiesEmpty}>
                 <Text style={s.storiesEmptyEmoji}>💬</Text>
                 <Text style={s.storiesEmptyText}>No stories yet. Share your journey!</Text>
-                <TouchableOpacity style={s.storiesCta} onPress={() => navigation.navigate("ShareCondition")}>
+                <TouchableOpacity style={s.storiesCta} onPress={() => requireAuth(() => navigation.navigate("ShareCondition"))}>
                   <Text style={s.storiesCtaText}>Share Your Story</Text>
                 </TouchableOpacity>
               </View>
@@ -448,7 +446,7 @@ export default function HomeScreen() {
       </SafeAreaView>
 
       {/* ── FAB ─────────────────────────────────────────────────────────── */}
-      <FAB onPress={() => navigation.navigate("MoodTracking")} />
+      <FAB onPress={() => requireAuth(() => navigation.navigate("MoodTracking"))} />
 
       {/* ── Continue Modal ───────────────────────────────────────────────── */}
       <ContinueModal

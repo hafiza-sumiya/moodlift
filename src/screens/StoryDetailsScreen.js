@@ -9,6 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { storyService, commentService } from "../utils/storyService";
 import { storage } from "../utils/storage";
 import CommentsList from "../components/CommentsList";
+import { useProtectedAction } from "../hooks/useProtectedAction";
 
 const CONDITION_COLORS = {
   Anxiety: "#f59e0b", Depression: "#6366f1", Burnout: "#ef4444",
@@ -22,6 +23,7 @@ export default function StoryDetailsScreen({ route }) {
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(true);
+  const requireAuth = useProtectedAction();
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
   const [liked, setLiked] = useState(false);
@@ -57,9 +59,10 @@ export default function StoryDetailsScreen({ route }) {
     }
   };
 
-  const handleLike = async () => {
-    if (liked || liking) return;
-    setLiking(true);
+  const handleLike = () => {
+    requireAuth(async () => {
+      if (liked || liking) return;
+      setLiking(true);
     Animated.sequence([
       Animated.spring(heartScale, { toValue: 1.4, useNativeDriver: true, speed: 30 }),
       Animated.spring(heartScale, { toValue: 1, useNativeDriver: true, speed: 20 }),
@@ -73,14 +76,16 @@ export default function StoryDetailsScreen({ route }) {
       }
     } catch (e) {
       console.error("Like error:", e);
-    } finally {
-      setLiking(false);
-    }
+      } finally {
+        setLiking(false);
+      }
+    });
   };
 
-  const addComment = async () => {
-    if (!commentText.trim()) return;
-    setPosting(true);
+  const addComment = () => {
+    requireAuth(async () => {
+      if (!commentText.trim()) return;
+      setPosting(true);
     try {
       const response = await commentService.createComment(story._id, {
         author: isAnonymous ? "Anonymous User" : userName,
@@ -95,9 +100,10 @@ export default function StoryDetailsScreen({ route }) {
       }
     } catch (e) {
       Alert.alert("Error", e.message || "Failed to post");
-    } finally {
-      setPosting(false);
-    }
+      } finally {
+        setPosting(false);
+      }
+    });
   };
 
   // Called by CommentsList when user deletes their comment

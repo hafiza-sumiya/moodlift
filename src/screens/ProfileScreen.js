@@ -4,7 +4,7 @@ import {
   Alert, TextInput, Animated, Dimensions, Platform, StatusBar,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { storage } from "../utils/storage";
 import AchievementModal from "../components/AchievementModal";
@@ -193,8 +193,229 @@ const srStyles = StyleSheet.create({
   sub: { fontSize: FONT.xs, color: COLORS.textMuted, marginTop: 1 },
 });
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
+// ─── Longest Best Day Streak Card ─────────────────────────────────────────────
+function LongestBestDayStreakCard({ moodData }) {
+  const formatDate = (dateObj) => {
+    if (!dateObj) return "";
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const d = dateObj.getDate().toString().padStart(2, '0');
+    const m = months[dateObj.getMonth()];
+    const y = dateObj.getFullYear();
+    return `${d}-${m}-${y}`;
+  };
+
+  const formatShortDate = (dateObj) => {
+    if (!dateObj) return "";
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const d = dateObj.getDate();
+    const m = months[dateObj.getMonth()];
+    return `${d} ${m}`;
+  };
+
+  const getLongestBestDayStreak = (data) => {
+    if (!data || data.length === 0) return null;
+    const sorted = [...data].sort((a, b) => new Date(a.date) - new Date(b.date));
+    let maxStreak = 0, currentStreak = 0;
+    let maxStart = null, maxEnd = null, maxActivities = new Set();
+    let currentStart = null, currentEnd = null, currentActivities = new Set();
+    let lastDate = null;
+    
+    for (const entry of sorted) {
+      if (POSITIVE_MOODS.includes(entry.color)) {
+        const parts = entry.date.split('-');
+        let entryDate;
+        if (parts.length === 3) {
+          entryDate = new Date(parts[0], parts[1] - 1, parts[2]);
+        } else {
+          entryDate = new Date(entry.date);
+        }
+        
+        if (lastDate) {
+          const diffTime = Math.abs(entryDate - lastDate);
+          const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+          
+          if (diffDays === 1) {
+            currentStreak++;
+            currentEnd = entryDate;
+            if (entry.feeling) currentActivities.add(entry);
+          } else if (diffDays > 1) {
+            currentStreak = 1;
+            currentStart = entryDate;
+            currentEnd = entryDate;
+            currentActivities = new Set();
+            if (entry.feeling) currentActivities.add(entry);
+          } else if (diffDays === 0) {
+             if (entry.feeling) currentActivities.add(entry);
+          }
+        } else {
+          currentStreak = 1;
+          currentStart = entryDate;
+          currentEnd = entryDate;
+          if (entry.feeling) currentActivities.add(entry);
+        }
+        lastDate = entryDate;
+        
+        if (currentStreak > maxStreak) {
+          maxStreak = currentStreak;
+          maxStart = currentStart;
+          maxEnd = currentEnd;
+          maxActivities = new Set(currentActivities);
+        }
+      } else {
+        currentStreak = 0;
+        lastDate = null; 
+      }
+    }
+    return { days: maxStreak, startDate: maxStart, endDate: maxEnd, activities: Array.from(maxActivities) };
+  };
+
+  const streakData = getLongestBestDayStreak(moodData);
+  
+  let daysText = "0 days";
+  let dateText = "No streak yet";
+  let formattedActivities = [];
+
+  if (streakData && streakData.days > 0) {
+    daysText = `${streakData.days} day${streakData.days !== 1 ? 's' : ''}`;
+    if (streakData.days === 1) {
+      dateText = formatDate(streakData.startDate);
+    } else {
+      dateText = `${formatShortDate(streakData.startDate)} - ${formatDate(streakData.endDate)}`;
+    }
+    
+    const uniqueFeelings = {};
+    streakData.activities.forEach(entry => {
+       if (entry.feeling && !uniqueFeelings[entry.feeling]) {
+          uniqueFeelings[entry.feeling] = { emoji: entry.emoji || '✨', label: entry.feeling };
+       }
+    });
+    formattedActivities = Object.values(uniqueFeelings).slice(0, 3);
+  }
+
+  return (
+    <View style={lbdStyles.card}>
+      <View style={lbdStyles.header}>
+        <Text style={lbdStyles.title}>Longest Best Day Streak</Text>
+        <MaterialCommunityIcons name="reply" size={24} color="#B0B0B0" style={{ transform: [{ scaleX: -1 }] }} />
+      </View>
+      
+      <View style={lbdStyles.mainRow}>
+        <MaterialCommunityIcons name="calendar-outline" size={54} color="#99B924" />
+        <View style={lbdStyles.infoCol}>
+          <Text style={lbdStyles.daysText}>{daysText}</Text>
+          <View style={[lbdStyles.datePill, (!streakData || streakData.days === 0) && { backgroundColor: '#E0E0E0' }]}>
+            <Text style={[lbdStyles.dateText, (!streakData || streakData.days === 0) && { color: '#888' }]}>{dateText}</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={lbdStyles.divider} />
+      
+      <Text style={lbdStyles.activitiesTitle}>Activities During Streak</Text>
+      {formattedActivities.length > 0 ? (
+        <View style={lbdStyles.activitiesRow}>
+          {formattedActivities.map((act, idx) => (
+            <React.Fragment key={idx}>
+              <View style={lbdStyles.activityItem}>
+                <Text style={lbdStyles.activityEmoji}>{act.emoji}</Text>
+                <Text style={lbdStyles.activityLabel}>{act.label}</Text>
+              </View>
+              {idx < formattedActivities.length - 1 && <View style={lbdStyles.dot} />}
+            </React.Fragment>
+          ))}
+        </View>
+      ) : (
+        <Text style={lbdStyles.activityLabel}>No positive streak logged yet.</Text>
+      )}
+    </View>
+  );
+}
+
+const lbdStyles = StyleSheet.create({
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 24,
+    marginHorizontal: SPACING.xl,
+    marginBottom: SPACING.lg,
+    ...SHADOWS.card,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#000",
+  },
+  mainRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  infoCol: {
+    marginLeft: 16,
+  },
+  daysText: {
+    fontSize: 22,
+    fontWeight: "400",
+    color: "#000",
+    marginBottom: 6,
+  },
+  datePill: {
+    backgroundColor: "#99B924",
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 14,
+    alignSelf: "flex-start",
+  },
+  dateText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#EAEAEA",
+    marginBottom: 16,
+  },
+  activitiesTitle: {
+    fontSize: 14,
+    color: "#888",
+    marginBottom: 12,
+  },
+  activitiesRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+  },
+  activityItem: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  activityEmoji: {
+    fontSize: 16,
+    marginRight: 6,
+  },
+  activityLabel: {
+    fontSize: 15,
+    color: "#888",
+  },
+  dot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#D0D0D0",
+    marginHorizontal: 8,
+  },
+});
+
 export default function ProfileScreen() {
+  const { isLoggedIn, logout } = useAuth();
+  const navigation = useNavigation();
   const [userName, setUserName] = useState("User");
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState("");
@@ -203,9 +424,12 @@ export default function ProfileScreen() {
   const [journalEntries, setJournalEntries] = useState([]);
   const [achievementModalVisible, setAchievementModalVisible] = useState(false);
   const [selectedStreakForModal, setSelectedStreakForModal] = useState(0);
-  const { logout } = useAuth();
 
-  useFocusEffect(useCallback(() => { loadData(); }, []));
+  useFocusEffect(useCallback(() => { 
+    if (isLoggedIn) {
+      loadData(); 
+    }
+  }, [isLoggedIn]));
 
   const loadData = async () => {
     const [name, s, moods, journal] = await Promise.all([
@@ -250,6 +474,27 @@ export default function ProfileScreen() {
 
   const totalEntries = moodData.length;
   const initials = userName.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+
+  // ─── Guest View ───────────────────────────────────────────────────────────────
+  if (isLoggedIn === false) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: COLORS.bgBase }]} edges={["top"]}>
+        <View style={styles.guestContainer}>
+          <Text style={{ fontSize: 60, marginBottom: 20 }}>👋</Text>
+          <Text style={styles.guestTitle}>Create your Profile</Text>
+          <Text style={styles.guestSub}>
+            Sign up to track your mood, earn achievements, and view deep insights into your emotional journey.
+          </Text>
+          <TouchableOpacity style={styles.guestBtn} onPress={() => navigation.navigate("Signup")} activeOpacity={0.85}>
+            <Text style={styles.guestBtnText}>Create Account</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.guestLoginBtn} onPress={() => navigation.navigate("Login")} activeOpacity={0.85}>
+            <Text style={styles.guestLoginText}>Already have an account? <Text style={{ fontWeight: WEIGHT.bold, color: COLORS.primary }}>Login</Text></Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -311,6 +556,11 @@ export default function ProfileScreen() {
 
         {/* ── Emotional Snapshot ───────────────────────────────────────── */}
         <EmotionalSummaryCard moodData={moodData} />
+
+        {/* ── Longest Best Day Streak ──────────────────────────────────── */}
+        <FadeSlideIn delay={150}>
+          <LongestBestDayStreakCard moodData={moodData} />
+        </FadeSlideIn>
 
         {/* ── Achievements ─────────────────────────────────────────────── */}
         <FadeSlideIn delay={200}>
@@ -426,4 +676,13 @@ const styles = StyleSheet.create({
   appInfo: { alignItems: "center", paddingBottom: SPACING.xl },
   appName: { fontSize: FONT.base, fontWeight: WEIGHT.bold, color: COLORS.primary },
   appVersion: { fontSize: FONT.xs, color: COLORS.textMuted, marginTop: 4, textAlign: "center" },
+
+  // Guest View Styles
+  guestContainer: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: SPACING.xxl },
+  guestTitle: { fontSize: 24, fontWeight: WEIGHT.extrabold, color: COLORS.textPrimary, marginBottom: SPACING.sm },
+  guestSub: { fontSize: FONT.base, color: COLORS.textMuted, textAlign: "center", lineHeight: 22, marginBottom: SPACING.xxl },
+  guestBtn: { backgroundColor: COLORS.primary, paddingVertical: SPACING.md, paddingHorizontal: SPACING.xxl, borderRadius: RADIUS.full, width: "100%", alignItems: "center", ...SHADOWS.md, marginBottom: SPACING.lg },
+  guestBtnText: { color: "#fff", fontWeight: WEIGHT.bold, fontSize: FONT.md },
+  guestLoginBtn: { padding: SPACING.sm },
+  guestLoginText: { color: COLORS.textMuted, fontSize: FONT.sm, fontWeight: WEIGHT.medium },
 });

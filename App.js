@@ -1,5 +1,4 @@
-import React from "react";
-import { View, ActivityIndicator, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -30,7 +29,7 @@ const Tab = createBottomTabNavigator();
 
 // ─── Loading splash shown while AsyncStorage token check runs ───────────────
 function LoadingScreen() {
-  return <LogoLoader />;
+    return <LogoLoader />;
 }
 
 // ─── Bottom tab navigator (authenticated users only) ─────────────────────────
@@ -110,89 +109,87 @@ function AppNavigator() {
                     <StatusBar style="auto" />
                     <Stack.Navigator screenOptions={{ headerShown: false }}>
 
-                        {isLoggedIn ? (
-                            // ── Authenticated stack ──────────────────────────────────────
-                            <>
-                                <Stack.Screen name="MainTabs" component={MainTabs} />
-                                <Stack.Screen
-                                    name="MoodTracking"
-                                    component={MoodTrackingScreen}
-                                    options={{
-                                        headerShown: true,
-                                        title: "Track Your Mood",
-                                        headerStyle: { backgroundColor: "#8E48BB" },
-                                        headerTintColor: "#fff",
-                                    }}
-                                />
-                                <Stack.Screen
-                                    name="BreathingExercise"
-                                    component={BreathingExerciseScreen}
-                                    options={{
-                                        headerShown: true,
-                                        title: "Breathing Exercise",
-                                        headerStyle: { backgroundColor: "#8E48BB" },
-                                        headerTintColor: "#fff",
-                                    }}
-                                />
-                                <Stack.Screen
-                                    name="FocusTimer"
-                                    component={FocusTimerScreen}
-                                    options={{
-                                        headerShown: true,
-                                        title: "Focus Timer",
-                                        headerStyle: { backgroundColor: "#8E48BB" },
-                                        headerTintColor: "#fff",
-                                    }}
-                                />
-                                <Stack.Screen
-                                    name="Journal"
-                                    component={JournalScreen}
-                                    options={{
-                                        headerShown: true,
-                                        title: "Daily Reflection",
-                                        headerStyle: { backgroundColor: "#8E48BB" },
-                                        headerTintColor: "#fff",
-                                    }}
-                                />
-                                <Stack.Screen
-                                    name="StoryDetails"
-                                    component={StoryDetailsScreen}
-                                    options={{
-                                        headerShown: true,
-                                        title: "Recovery Story",
-                                        headerStyle: { backgroundColor: "#8E48BB" },
-                                        headerTintColor: "#fff",
-                                    }}
-                                />
-                                <Stack.Screen
-                                    name="ShareCondition"
-                                    component={ShareConditionScreen}
-                                    options={{
-                                        headerShown: true,
-                                        title: "Share Your Condition",
-                                        headerStyle: { backgroundColor: "#8E48BB" },
-                                        headerTintColor: "#fff",
-                                    }}
-                                />
-                                <Stack.Screen
-                                    name="DeepReflection"
-                                    component={DeepReflectionScreen}
-                                    options={{
-                                        headerShown: true,
-                                        title: "Reflect Deeper",
-                                        headerStyle: { backgroundColor: "#8E48BB" },
-                                        headerTintColor: "#fff",
-                                    }}
-                                />
-                            </>
-                        ) : (
-                            // ── Unauthenticated stack ────────────────────────────────────
-                            <>
-                                <Stack.Screen name="Login" component={LoginScreen} />
-                                <Stack.Screen name="Signup" component={SignupScreen} />
-                            </>
-                        )}
+                        {/* ── Unified Application Stack ───────────────────────────────────────── */}
+                        {/* 
+                          By placing all screens in the main stack, we allow guest users 
+                          to freely navigate the app (like reading public stories) while keeping 
+                          the authentication screens accessible whenever they attempt protected actions.
+                        */}
+                        <Stack.Screen name="MainTabs" component={MainTabs} />
+                        <Stack.Screen name="Login" component={LoginScreen} />
+                        <Stack.Screen name="Signup" component={SignupScreen} />
 
+                        {/* ── Protected Features (Accessible but protected inside) ── */}
+                        <Stack.Screen
+                            name="MoodTracking"
+                            component={MoodTrackingScreen}
+                            options={{
+                                headerShown: true,
+                                title: "Track Your Mood",
+                                headerStyle: { backgroundColor: "#8E48BB" },
+                                headerTintColor: "#fff",
+                            }}
+                        />
+                        <Stack.Screen
+                            name="BreathingExercise"
+                            component={BreathingExerciseScreen}
+                            options={{
+                                headerShown: true,
+                                title: "Breathing Exercise",
+                                headerStyle: { backgroundColor: "#8E48BB" },
+                                headerTintColor: "#fff",
+                            }}
+                        />
+                        <Stack.Screen
+                            name="FocusTimer"
+                            component={FocusTimerScreen}
+                            options={{
+                                headerShown: true,
+                                title: "Focus Timer",
+                                headerStyle: { backgroundColor: "#8E48BB" },
+                                headerTintColor: "#fff",
+                            }}
+                        />
+                        <Stack.Screen
+                            name="Journal"
+                            component={JournalScreen}
+                            options={{
+                                headerShown: true,
+                                title: "Daily Reflection",
+                                headerStyle: { backgroundColor: "#8E48BB" },
+                                headerTintColor: "#fff",
+                            }}
+                        />
+                        <Stack.Screen
+                            name="StoryDetails"
+                            component={StoryDetailsScreen}
+                            options={{
+                                headerShown: true,
+                                title: "Recovery Story",
+                                headerStyle: { backgroundColor: "#8E48BB" },
+                                headerTintColor: "#fff",
+                            }}
+                        />
+                        <Stack.Screen
+                            name="ShareCondition"
+                            component={ShareConditionScreen}
+                            options={{
+                                headerShown: true,
+                                title: "Share Your Condition",
+                                headerStyle: { backgroundColor: "#8E48BB" },
+                                headerTintColor: "#fff",
+                            }}
+                        />
+                        <Stack.Screen
+                            name="DeepReflection"
+                            component={DeepReflectionScreen}
+                            options={{
+                                headerShown: true,
+                                title: "Reflect Deeper",
+                                headerStyle: { backgroundColor: "#8E48BB" },
+                                headerTintColor: "#fff",
+                            }}
+                        />
                     </Stack.Navigator>
                 </NavigationContainer>
             </GestureHandlerRootView>

@@ -8,10 +8,12 @@ import {
   Dimensions,
   Platform,
   StatusBar,
+  TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useAuth } from "../utils/AuthContext";
 import { storage } from "../utils/storage";
 import {
   COLORS, SHADOWS, SPACING, RADIUS, FONT, WEIGHT,
@@ -227,13 +229,16 @@ function EmptyState() {
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function InsightsScreen() {
+  const { isLoggedIn } = useAuth();
   const [insights, setInsights] = useState(undefined);
   const navigation = useNavigation();
 
   useFocusEffect(
     React.useCallback(() => {
-      loadInsights();
-    }, [])
+      if (isLoggedIn) {
+        loadInsights();
+      }
+    }, [isLoggedIn])
   );
 
   useEffect(() => { loadInsights(); }, []);
@@ -242,6 +247,27 @@ export default function InsightsScreen() {
     const data = await storage.getMoodData();
     setInsights(data.length ? computeInsights(data) : null);
   };
+
+  // ── Guest View ───────────────────────────────────────────────────────────────
+  if (isLoggedIn === false) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: COLORS.bgBase }]} edges={["top"]}>
+        <View style={guestStyles.container}>
+          <Text style={{ fontSize: 60, marginBottom: 20 }}>🧠</Text>
+          <Text style={guestStyles.title}>Unlock Insights</Text>
+          <Text style={guestStyles.sub}>
+            Log your mood to discover patterns, find your dominant emotions, and receive smart wellness recommendations.
+          </Text>
+          <TouchableOpacity style={guestStyles.btn} onPress={() => navigation.navigate("Signup")} activeOpacity={0.85}>
+            <Text style={guestStyles.btnText}>Start Tracking</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={guestStyles.loginBtn} onPress={() => navigation.navigate("Login")} activeOpacity={0.85}>
+            <Text style={guestStyles.loginText}>Already tracking? <Text style={{ fontWeight: WEIGHT.bold, color: COLORS.primary }}>Login</Text></Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   // ── Loading
   if (insights === undefined) {
@@ -502,6 +528,16 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
     fontWeight: WEIGHT.medium,
   },
+});
+
+const guestStyles = StyleSheet.create({
+  container: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: SPACING.xxl },
+  title: { fontSize: 24, fontWeight: WEIGHT.extrabold, color: COLORS.textPrimary, marginBottom: SPACING.sm },
+  sub: { fontSize: FONT.base, color: COLORS.textMuted, textAlign: "center", lineHeight: 22, marginBottom: SPACING.xxl },
+  btn: { backgroundColor: COLORS.primary, paddingVertical: SPACING.md, paddingHorizontal: SPACING.xxl, borderRadius: RADIUS.full, width: "100%", alignItems: "center", ...SHADOWS.md, marginBottom: SPACING.lg },
+  btnText: { color: "#fff", fontWeight: WEIGHT.bold, fontSize: FONT.md },
+  loginBtn: { padding: SPACING.sm },
+  loginText: { color: COLORS.textMuted, fontSize: FONT.sm, fontWeight: WEIGHT.medium },
 });
 
 const ringsRow = StyleSheet.create({
