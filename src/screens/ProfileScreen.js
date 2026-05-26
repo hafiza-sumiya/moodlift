@@ -7,6 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { storage } from "../utils/storage";
+import apiClient from "../utils/api";
 import AchievementModal from "../components/AchievementModal";
 import { useAuth } from "../utils/AuthContext";
 import { COLORS, SHADOWS, SPACING, RADIUS, FONT, WEIGHT, MOOD, POSITIVE_MOODS } from "../styles/theme";
@@ -424,12 +425,26 @@ export default function ProfileScreen() {
   const [journalEntries, setJournalEntries] = useState([]);
   const [achievementModalVisible, setAchievementModalVisible] = useState(false);
   const [selectedStreakForModal, setSelectedStreakForModal] = useState(0);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useFocusEffect(useCallback(() => { 
     if (isLoggedIn) {
-      loadData(); 
+      loadData();
+      checkAdminStatus();
     }
   }, [isLoggedIn]));
+
+  const checkAdminStatus = async () => {
+    try {
+      const response = await apiClient.getCurrentUser();
+      if (response.success && response.data) {
+        setIsAdmin(response.data.isAdmin || false);
+      }
+    } catch (error) {
+      console.error("Error checking admin status:", error);
+      setIsAdmin(false);
+    }
+  };
 
   const loadData = async () => {
     const [name, s, moods, journal] = await Promise.all([
@@ -593,6 +608,20 @@ export default function ProfileScreen() {
           </View>
         </FadeSlideIn>
 
+        {/* ── Admin Dashboard (only visible to admins) ──────────────────── */}
+        {isAdmin && (
+          <FadeSlideIn delay={285}>
+            <TouchableOpacity
+              style={[styles.adminBtn, SHADOWS.medium]}
+              onPress={() => navigation.navigate("AdminDashboard")}
+              activeOpacity={0.85}
+            >
+              <MaterialCommunityIcons name="shield-account" size={18} color="#fff" />
+              <Text style={styles.adminBtnText}>Admin Dashboard</Text>
+            </TouchableOpacity>
+          </FadeSlideIn>
+        )}
+
         {/* ── Logout ───────────────────────────────────────────────────── */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.85}>
           <MaterialCommunityIcons name="logout" size={18} color="#fff" />
@@ -672,6 +701,13 @@ const styles = StyleSheet.create({
     marginHorizontal: SPACING.xl, padding: SPACING.md, ...SHADOWS.md, marginBottom: SPACING.lg,
   },
   logoutText: { color: "#fff", fontWeight: WEIGHT.bold, fontSize: FONT.base },
+
+  adminBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: SPACING.sm,
+    backgroundColor: COLORS.warning, borderRadius: RADIUS.full,
+    marginHorizontal: SPACING.xl, padding: SPACING.md, marginBottom: SPACING.lg,
+  },
+  adminBtnText: { color: "#fff", fontWeight: WEIGHT.bold, fontSize: FONT.base },
 
   appInfo: { alignItems: "center", paddingBottom: SPACING.xl },
   appName: { fontSize: FONT.base, fontWeight: WEIGHT.bold, color: COLORS.primary },

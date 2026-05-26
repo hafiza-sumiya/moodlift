@@ -74,6 +74,10 @@ const storySchema = new mongoose.Schema(
       enum: ["published", "draft", "flagged"],
       default: "published",
     },
+    isBlocked: {
+      type: Boolean,
+      default: false,
+    },
     tags: [
       {
         type: String,

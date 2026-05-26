@@ -129,6 +129,13 @@ class APIClient {
       method: "DELETE",
     });
   }
+
+  // ===== AUTH ENDPOINTS =====
+
+  // Get current user info
+  async getCurrentUser() {
+    return this.request("/auth/me", { method: "GET" });
+  }
 }
 
 export default new APIClient();

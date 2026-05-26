@@ -2,13 +2,16 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/db");
+const dns = require("dns");
 
 const authRoutes = require("./routes/auth");
 const moodRoutes = require("./routes/moodRoutes");
 const storyRoutes = require("./routes/stories");
 const commentRoutes = require("./routes/comments");
+const adminRoutes = require("./routes/admin");
 
 const app = express();
+dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
 // Middleware
 app.use(express.json());
@@ -23,6 +26,7 @@ app.use("/api/stories", storyRoutes);
 app.use("/api/stories/:storyId/comments", commentRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/moods", moodRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => {
