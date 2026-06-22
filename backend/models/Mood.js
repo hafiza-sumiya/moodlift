@@ -8,3 +8,5 @@ const moodSchema = new mongoose.Schema({
   color: String,
   date: String,
 }, { timestamps: true });
+
+module.exports = mongoose.model("Mood", moodSchema);

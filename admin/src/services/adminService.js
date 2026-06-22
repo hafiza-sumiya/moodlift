@@ -33,28 +33,40 @@ class AdminService {
     try {
       console.log(`📤 [Admin API] ${options.method || 'GET'} ${url}`);
       const response = await fetch(url, config);
-      const data = await response.json();
 
-      console.log(`📥 [Admin API] Response:`, { status: response.status, success: data.success });
+      // Safely attempt to parse JSON body, fall back to text
+      let data = null;
+      try {
+        data = await response.json();
+      } catch (parseErr) {
+        const text = await response.text();
+        data = { success: response.ok, message: text };
+      }
+
+      console.log(`📥 [Admin API] Response:`, { status: response.status, success: data?.success });
+
+      // Detect unauthorized / expired token cases and trigger handler
+      const message = (data && data.message) || "";
+      const lowerMsg = String(message).toLowerCase();
+      const isExpired = lowerMsg.includes("jwt expired") || lowerMsg.includes("tokenexpired") || data?.name === "TokenExpiredError";
 
       if (!response.ok) {
-        if (
-          response.status === 401 ||
-          data.message === "Not authorized" ||
-          data.message === "Invalid token"
-        ) {
+        if (response.status === 401 || message === "Not authorized" || message === "Invalid token" || isExpired) {
           if (this.onUnauthorized) {
-            this.onUnauthorized();
+            try {
+              await this.onUnauthorized();
+            } catch (e) {
+              console.warn("onUnauthorized handler failed:", e);
+            }
           }
         }
-        throw new Error(
-          data.message || `HTTP error! status: ${response.status}`
-        );
+
+        throw new Error(data.message || `HTTP error! status: ${response.status}`);
       }
 
       return data;
     } catch (error) {
-      console.error(`❌ [Admin API] Error at ${url}:`, error.message);
+      console.error(`❌ [Admin API] Error at ${url}:`, error?.message || error);
       throw error;
     }
   }

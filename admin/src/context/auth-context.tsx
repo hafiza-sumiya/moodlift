@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { storage } from '@/utils/storage';
-import { adminService } from '@/services/adminService';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { storage } from "@/utils/storage";
+import { adminService } from "@/services/adminService";
+import { useRouter } from "expo-router";
 
 interface User {
   id: string;
@@ -34,17 +35,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const storedName = await storage.getUserName();
 
         if (storedToken) {
-          setToken(storedToken);
-          if (storedUserId) {
-            setUser({
-              id: storedUserId,
-              name: storedName || 'Administrator',
-              email: '',
-            });
+          try {
+            await adminService.getDashboardStats(); // token verify
+            setToken(storedToken);
+
+            if (storedUserId) {
+              setUser({
+                id: storedUserId,
+                name: storedName || "Administrator",
+                email: "",
+              });
+            }
+          } catch {
+            await logout();
           }
         }
       } catch (error) {
-        console.error('Failed to load stored authentication:', error);
+        console.error("Failed to load stored authentication:", error);
       } finally {
         setLoading(false);
       }
@@ -52,8 +59,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     loadStoredAuth();
   }, []);
+  const router = useRouter();
 
-  // Register unauthorized response interceptor
+  // Register unauthorized response interceptor BEFORE attempting verification
   useEffect(() => {
     adminService.onUnauthorized = async () => {
       await logout();
@@ -66,38 +74,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       const response = await adminService.login(email, password);
-      
+
       if (response.success && response.token) {
+        // Determine admin/user payload (backend may return `admin` or `user`)
+        const actor = response.admin || response.user || null;
+
         // Save to state
         setToken(response.token);
-        setUser(response.user);
+        setUser(actor);
 
         // Save to AsyncStorage
         await storage.setToken(response.token);
-        if (response.user) {
-          await storage.setUserId(response.user.id);
-          if (response.user.name) {
-            await storage.saveUserName(response.user.name);
-          }
+        if (actor) {
+          if (actor.id) await storage.setUserId(actor.id);
+          if (actor.name) await storage.saveUserName(actor.name);
         }
       } else {
-        throw new Error(response.message || 'Login failed');
+        throw new Error(response.message || "Login failed");
       }
     } catch (error) {
-      console.error('Login action error:', error);
+      console.error("Login action error:", error);
       throw error;
     }
   };
 
   const logout = async () => {
     try {
+      await AsyncStorage.removeItem("@moodlift:token");
+      await AsyncStorage.removeItem("@moodlift:userId");
+      await storage.clearAllData();
+
       setToken(null);
       setUser(null);
-      await storage.removeToken();
-      await AsyncStorage.removeItem('@moodlift:userId');
-      await storage.clearAllData();
+      // Navigate to login immediately; RouteGuard will also handle redirects
+      try {
+        router.replace("/login");
+      } catch (e) {
+        // router may be unavailable in some test environments
+        console.warn("Router navigation failed during logout:", e);
+      }
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
     }
   };
 
@@ -111,7 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

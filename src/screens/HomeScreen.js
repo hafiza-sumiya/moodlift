@@ -105,7 +105,7 @@ function MoodCalendar({ moodData }) {
   const today = new Date();
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(today);
-    d.setDate(today.getDate() - (6 - i));
+    d.setDate(today.getDate() - (i));
     return d;
   });
   const DAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];

@@ -14,6 +14,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { adminService } from "../src/services/adminService";
 import { StatCard } from "../src/components/StatCard";
 import { COLORS, SPACING, RADIUS, FONT, WEIGHT, SHADOWS } from "@/styles/theme";
+import { useAuth } from "@/context/auth-context";
 
 const COLORS_ADMIN = {
   primary: "#8E48BB",
@@ -26,6 +27,8 @@ export default function DashboardScreen() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const { logout } = useAuth();
 
   const fetchStats = async () => {
     try {
@@ -87,12 +90,21 @@ export default function DashboardScreen() {
           <Text style={styles.headerTitle}>Welcome Back!</Text>
           <Text style={styles.headerSubtitle}>Admin Dashboard</Text>
         </View>
-        <View style={styles.headerIcon}>
-          <MaterialCommunityIcons
-            name="shield-account"
-            size={40}
-            color={COLORS_ADMIN.primary}
-          />
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.logoutButtonHeader}
+            onPress={async () => {
+              try {
+                await logout();
+              } catch (e) {
+                console.warn("Logout failed:", e);
+              }
+            }}
+            activeOpacity={0.7}
+          >
+            <MaterialCommunityIcons name="logout" size={20} color={COLORS_ADMIN.primary} />
+            <Text style={styles.logoutTextHeader}>Logout</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -221,6 +233,24 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.lg,
     justifyContent: "center",
     alignItems: "center",
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  logoutButtonHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F0E6FF",
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 18,
+  },
+  logoutTextHeader: {
+    color: COLORS_ADMIN.primary,
+    fontSize: FONT.sm,
+    fontWeight: "600",
+    marginLeft: 8,
   },
   section: {
     paddingHorizontal: SPACING.lg,
